@@ -1,6 +1,7 @@
 import { ParticleBackground } from "@/components/backgrounds/ParticleBackground";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { Button } from "@/components/ui/button";
+import { AboutModal } from "@/components/public/AboutModal";
 
 export const Home = () => {
   return (
@@ -27,13 +28,17 @@ export const Home = () => {
                   </Button>
                 }
               />
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="text-xl px-12 py-6 rounded-full hover:scale-105 transition-transform hover:bg-gray-800/50 w-full sm:w-auto"
-              >
-                了解更多
-              </Button>
+              <AboutModal
+                trigger={
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="text-xl px-12 py-6 rounded-full hover:scale-105 transition-transform hover:bg-gray-800/50 w-full sm:w-auto"
+                  >
+                    了解更多
+                  </Button>
+                }
+              />
             </div>
           </div>
         </div>

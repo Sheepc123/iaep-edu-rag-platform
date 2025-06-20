@@ -7,30 +7,35 @@ import {
 import { LoginForm } from "./LoginForm";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { PersonIcon, BackpackIcon } from "@radix-ui/react-icons";
+import { GraduationCap, Presentation, UserCog } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 interface LoginModalProps {
   trigger?: React.ReactNode;
 }
 
-type Role = "student" | "teacher";
+type Role = "student" | "teacher" | "administrator";
 type Step = "role-selection" | "login-form";
 
 const RoleSelection = ({ onSelectRole }: { onSelectRole: (role: Role) => void }) => {
   return (
-    <div className="flex flex-col items-center text-white p-8">
-      <h2 className="text-3xl font-bold mb-12">请选择您的角色</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-2xl">
+    <div className="flex flex-col items-center justify-center h-full text-white p-8">
+      <h2 className="text-4xl font-bold mb-16">请选择您的角色</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-10 w-full max-w-5xl">
         <RoleCard
-          icon={<BackpackIcon className="w-16 h-16 mb-4" />}
+          icon={<GraduationCap className="w-20 h-20 mb-6" />}
           title="我是学生"
           onClick={() => onSelectRole("student")}
         />
         <RoleCard
-          icon={<PersonIcon className="w-16 h-16 mb-4" />}
+          icon={<Presentation className="w-20 h-20 mb-6" />}
           title="我是老师"
           onClick={() => onSelectRole("teacher")}
+        />
+        <RoleCard
+          icon={<UserCog className="w-20 h-20 mb-6" />}
+          title="我是管理员"
+          onClick={() => onSelectRole("administrator")}
         />
       </div>
     </div>
@@ -41,13 +46,14 @@ const RoleCard = ({ icon, title, onClick }: { icon: React.ReactNode; title: stri
   return (
     <div
       onClick={onClick}
-      className="bg-white/10 p-8 rounded-2xl flex flex-col items-center justify-center cursor-pointer border border-transparent hover:border-blue-400 hover:bg-white/20 transition-all duration-300 transform hover:scale-105"
+      className="bg-white/5 p-10 rounded-2xl flex flex-col items-center justify-center cursor-pointer border-2 border-transparent hover:border-blue-400 hover:bg-white/10 transition-all duration-300 transform hover:scale-105"
       style={{
-        boxShadow: "0 0 15px rgba(59, 130, 246, 0.2), 0 0 30px rgba(59, 130, 246, 0.1)",
+        backdropFilter: "blur(10px)",
+        boxShadow: "0 0 20px rgba(80, 150, 255, 0.2), 0 0 40px rgba(80, 150, 255, 0.1)",
       }}
     >
       {icon}
-      <p className="text-2xl font-semibold">{title}</p>
+      <p className="text-3xl font-semibold">{title}</p>
     </div>
   );
 };
@@ -73,18 +79,18 @@ export const LoginModal = ({ trigger }: LoginModalProps) => {
       <DialogTrigger asChild>
         {trigger || <Button variant="outline">登录</Button>}
       </DialogTrigger>
-      <DialogOverlay className="bg-black/80 backdrop-blur-sm" />
+      <DialogOverlay className="bg-black/80 backdrop-blur-md" />
       <DialogContent 
-        className="bg-transparent border-none shadow-none p-0 max-w-4xl w-full overflow-hidden"
+        className="bg-transparent border-none shadow-none p-0 max-w-6xl w-full overflow-hidden"
         style={{
             fontFamily: "'Inter', sans-serif",
         }}
       >
-        <div className="relative h-[600px] flex items-center justify-center">
+        <div className="relative h-[700px] flex items-center justify-center">
           {/* Role Selection Step */}
           <div
             className={cn(
-              "absolute w-full h-full transition-all duration-500 ease-in-out",
+              "absolute w-full h-full transition-all duration-500 ease-in-out flex items-center justify-center",
               step === "role-selection"
                 ? "opacity-100 transform translate-x-0"
                 : direction === "forward" 
@@ -99,7 +105,7 @@ export const LoginModal = ({ trigger }: LoginModalProps) => {
           {selectedRole && (
             <div
               className={cn(
-                "absolute w-full h-full transition-all duration-500 ease-in-out",
+                "absolute w-full h-full transition-all duration-500 ease-in-out flex items-center justify-center",
                 step === "login-form"
                   ? "opacity-100 transform translate-x-0"
                   : direction === "forward"
