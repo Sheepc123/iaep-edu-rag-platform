@@ -17,7 +17,14 @@ module.exports = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+      },
       colors: {
+        brand: {
+          DEFAULT: '#007BFF',
+          light: '#E6F2FF',
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -51,6 +58,10 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        subtle: {
+          border: '#DEE2E6',
+          background: '#F8F9FA'
+        }
       },
       borderRadius: {
         lg: "var(--radius)",

@@ -35,27 +35,29 @@ export const LoginForm = ({ role, onBack }: LoginFormProps) => {
     e.preventDefault();
     setIsLoading(true);
 
-    try {
-      // TODO: 实现登录逻辑
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password, role }),
-      });
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem("token", data.token);
-        toast({
-          title: "登录成功",
-          description: "欢迎回来！",
-        });
-        navigate("/dashboard");
-      } else {
-        throw new Error("登录失败");
+    try {
+      localStorage.setItem("token", `fake-token-for-${role}`);
+      toast({
+        title: "登录成功",
+        description: "欢迎回来！",
+      });
+      
+      switch (role) {
+        case "student":
+          navigate("/student/dashboard");
+          break;
+        case "teacher":
+          // navigate("/teacher/dashboard"); // 教师仪表盘路由
+          break;
+        case "administrator":
+          // navigate("/admin/dashboard"); // 管理员仪表盘路由
+          break;
+        default:
+          navigate("/");
       }
+
     } catch (error) {
       toast({
         variant: "destructive",
