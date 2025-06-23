@@ -9,14 +9,16 @@ import {
 import { ReactNode, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "react-router-dom";
+import { SimpleAIButton } from "@/components/ai/SimpleAIButton";
 
 const StudentLayout = ({ children }: { children: ReactNode }) => {
   return (
-    <div className="flex min-h-screen w-full bg-white font-sans">
+    <div className="flex min-h-screen w-full bg-white font-sans relative">
       <Sidebar />
       <main className="flex-1 p-8 tech-background">
         {children}
       </main>
+      <SimpleAIButton />
     </div>
   );
 };
