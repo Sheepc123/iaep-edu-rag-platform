@@ -7,6 +7,7 @@ import { Courses } from "./pages/student/Courses";
 import { Exercises } from "./pages/student/Exercises";
 import { Learning } from "./pages/student/Learning";
 import { AIAssistant } from "./pages/student/AIAssistant";
+import { Profile } from "./pages/student/Profile";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="/student/exercises" element={<Exercises />} />
           <Route path="/student/learning" element={<Learning />} />
           <Route path="/student/ai-assistant" element={<AIAssistant />} />
+          <Route path="/student/profile" element={<Profile />} />
           {/* 添加更多路由 */}
         </Routes>
         <Toaster />

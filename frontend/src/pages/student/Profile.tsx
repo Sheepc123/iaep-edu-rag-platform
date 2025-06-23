@@ -356,3 +356,163 @@ export const Profile = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* 密码修改卡片 */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl font-bold flex items-center gap-2">
+                    <Lock className="w-5 h-5 text-blue-600" />
+                    账户安全
+                  </CardTitle>
+                  {!showPasswordForm && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowPasswordForm(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Lock className="w-4 h-4" />
+                      修改密码
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {!showPasswordForm ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div>
+                        <h4 className="font-medium text-gray-900">登录密码</h4>
+                        <p className="text-sm text-gray-600">上次修改：2024年5月15日</p>
+                      </div>
+                      <Badge className="bg-green-100 text-green-700">
+                        安全
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div>
+                        <h4 className="font-medium text-gray-900">两步验证</h4>
+                        <p className="text-sm text-gray-600">通过手机短信验证登录</p>
+                      </div>
+                      <Badge className="bg-yellow-100 text-yellow-700">
+                        未启用
+                      </Badge>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 gap-6">
+                      {/* 当前密码 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          当前密码
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPasswords.current ? "text" : "password"}
+                            value={passwordForm.currentPassword}
+                            onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="请输入当前密码"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 新密码 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          新密码
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPasswords.new ? "text" : "password"}
+                            value={passwordForm.newPassword}
+                            onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="请输入新密码（至少6位）"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 确认新密码 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          确认新密码
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPasswords.confirm ? "text" : "password"}
+                            value={passwordForm.confirmPassword}
+                            onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="请再次输入新密码"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 密码强度提示 */}
+                    <div className="p-4 bg-blue-50 rounded-lg">
+                      <h4 className="text-sm font-medium text-blue-900 mb-2">密码安全建议：</h4>
+                      <ul className="text-xs text-blue-700 space-y-1">
+                        <li>• 密码长度至少6位字符</li>
+                        <li>• 包含大小写字母、数字和特殊字符</li>
+                        <li>• 不要使用生日、姓名等个人信息</li>
+                        <li>• 定期更换密码以保证账户安全</li>
+                      </ul>
+                    </div>
+
+                    {/* 操作按钮 */}
+                    <div className="flex space-x-3">
+                      <Button
+                        onClick={handleChangePassword}
+                        disabled={isSaving || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Save className="w-4 h-4" />
+                        {isSaving ? '修改中...' : '确认修改'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setShowPasswordForm(false);
+                          setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <X className="w-4 h-4" />
+                        取消
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </motion.div>
+    </StudentLayout>
+  );
+};
