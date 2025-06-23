@@ -1,117 +1,664 @@
 import StudentLayout from "@/components/layouts/StudentLayout";
 import { AbilityRadarChart } from "@/components/charts/AbilityRadarChart";
-import { CheckSquare, BookOpen, Clock, Zap, Lightbulb } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import {
+  CheckSquare,
+  BookOpen,
+  Clock,
+  Zap,
+  Lightbulb,
+  TrendingUp,
+  Calendar,
+  Target,
+  Award,
+  PlayCircle,
+  ChevronRight,
+  Star,
+  Brain,
+  Timer,
+  BookMarked
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2
+    }
+  }
+};
+
+const cardVariants = {
+  hidden: {
+    opacity: 0,
+    y: 20,
+    scale: 0.95
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 15
+    }
+  }
+};
+
+const hoverVariants = {
+  hover: {
+    scale: 1.02,
+    y: -5,
+    transition: {
+      type: "spring",
+      stiffness: 400,
+      damping: 10
+    }
+  }
+};
 
 // Main Dashboard Component
 export const Dashboard = () => {
   return (
     <StudentLayout>
-      <div className="grid grid-cols-2 gap-8">
-        {/* Row 1 */}
-        <WelcomeCard />
-        <KeyMetrics />
+      <motion.div
+        className="space-y-8"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* Header Section */}
+        <motion.div variants={cardVariants}>
+          <WelcomeSection />
+        </motion.div>
 
-        {/* Row 2 */}
-        <TodoListCard />
-        <CoursesCard />
+        {/* Stats Grid */}
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          variants={containerVariants}
+        >
+          <motion.div variants={cardVariants}>
+            <StatCard
+              icon={<Timer className="w-6 h-6" />}
+              title="今日学习"
+              value="2.5"
+              unit="小时"
+              trend="+12%"
+              color="blue"
+            />
+          </motion.div>
+          <motion.div variants={cardVariants}>
+            <StatCard
+              icon={<Target className="w-6 h-6" />}
+              title="完成任务"
+              value="8"
+              unit="个"
+              trend="+25%"
+              color="green"
+            />
+          </motion.div>
+          <motion.div variants={cardVariants}>
+            <StatCard
+              icon={<Award className="w-6 h-6" />}
+              title="平均得分"
+              value="87"
+              unit="分"
+              trend="+5%"
+              color="purple"
+            />
+          </motion.div>
+          <motion.div variants={cardVariants}>
+            <StatCard
+              icon={<TrendingUp className="w-6 h-6" />}
+              title="学习进度"
+              value="68"
+              unit="%"
+              trend="+8%"
+              color="orange"
+            />
+          </motion.div>
+        </motion.div>
 
-        {/* Row 3 (Full Width) */}
-        <div className="col-span-2">
+        {/* Main Content Grid */}
+        <motion.div
+          className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+          variants={containerVariants}
+        >
+          {/* Left Column */}
+          <motion.div className="lg:col-span-2 space-y-8" variants={cardVariants}>
+            <TodoListCard />
+            <CoursesCard />
+          </motion.div>
+
+          {/* Right Column */}
+          <motion.div className="space-y-8" variants={cardVariants}>
+            <AIRecommendationCard />
+            <QuickActionsCard />
+          </motion.div>
+        </motion.div>
+
+        {/* Full Width Section */}
+        <motion.div variants={cardVariants}>
           <AbilityCard />
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </StudentLayout>
   );
 };
 
-// Card component
-const Card = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
-  <div className={`bg-white/60 backdrop-blur-xl p-6 rounded-lg border border-white/20 shadow-sm h-full transition-all duration-300 ease-in-out hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer ${className}`}>
-    {children}
-  </div>
-);
+// Welcome Section Component
+const WelcomeSection = () => {
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-// Welcome & AI Suggestion Card
-const WelcomeCard = () => (
-  <Card className="flex flex-col justify-center">
-    <h2 className="text-3xl font-bold text-gray-800">你好, [学生姓名]!</h2>
-    <div className="mt-4 flex items-center p-4 bg-white rounded-lg border-l-4 border-brand">
-        <Lightbulb className="text-brand mr-4" size={24} />
-        <div>
-            <h3 className="font-semibold text-gray-700">AI 学习建议</h3>
-            <p className="text-gray-500">根据你最近的练习记录，建议加强 "函数与极限" 章节的学习。</p>
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const getGreeting = () => {
+    const hour = currentTime.getHours();
+    if (hour < 12) return "早上好";
+    if (hour < 18) return "下午好";
+    return "晚上好";
+  };
+
+  return (
+    <motion.div
+      className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 p-8 text-white"
+      whileHover="hover"
+      variants={hoverVariants}
+    >
+      <div className="absolute inset-0 bg-black/10" />
+      <div className="relative z-10">
+        <div className="flex items-center justify-between">
+          <div>
+            <motion.h1
+              className="text-4xl font-bold mb-2"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              {getGreeting()}，张同学！
+            </motion.h1>
+            <motion.p
+              className="text-blue-100 text-lg"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              今天是 {currentTime.toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'long'
+              })}
+            </motion.p>
+          </div>
+          <motion.div
+            className="text-6xl opacity-20"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          >
+            🎓
+          </motion.div>
         </div>
-    </div>
-  </Card>
-);
+      </div>
+    </motion.div>
+  );
+};
 
-// Key Metrics Card
-const KeyMetrics = () => (
-  <Card>
-    <div className="flex justify-around items-center h-full">
-      <MetricItem value="75" unit="分钟" label="今日学习" />
-      <MetricItem value="3" unit="个" label="待办完成" />
-      <MetricItem value="85" unit="分" label="平均得分" />
-    </div>
-  </Card>
-);
+// Stat Card Component
+interface StatCardProps {
+  icon: React.ReactNode;
+  title: string;
+  value: string;
+  unit: string;
+  trend: string;
+  color: 'blue' | 'green' | 'purple' | 'orange';
+}
 
-const MetricItem = ({ value, unit, label }: { value: string, unit: string, label: string }) => (
-  <div className="text-center">
-    <p className="text-4xl font-bold text-brand">{value}<span className="text-lg ml-1 text-gray-500">{unit}</span></p>
-    <p className="text-gray-500 mt-1">{label}</p>
-  </div>
-);
+const StatCard = ({ icon, title, value, unit, trend, color }: StatCardProps) => {
+  const colorClasses = {
+    blue: 'from-blue-500 to-blue-600 text-blue-600',
+    green: 'from-green-500 to-green-600 text-green-600',
+    purple: 'from-purple-500 to-purple-600 text-purple-600',
+    orange: 'from-orange-500 to-orange-600 text-orange-600'
+  };
 
-// To-Do List Card
-const TodoListCard = () => (
-  <Card>
-    <h3 className="font-bold text-xl text-gray-800 mb-4">待办事项</h3>
-    <ul className="space-y-3">
-      <TodoItem label="完成第三章的在线测试" isDone />
-      <TodoItem label={'观看 "导数应用" 视频'} isDone={false} />
-      <TodoItem label={'阅读 "积分方法" 补充材料'} isDone={false} />
-    </ul>
-  </Card>
-);
+  return (
+    <motion.div
+      whileHover="hover"
+      variants={hoverVariants}
+    >
+      <Card className="relative overflow-hidden border-0 shadow-lg">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className={`p-3 rounded-xl bg-gradient-to-br ${colorClasses[color]} text-white`}>
+              {icon}
+            </div>
+            <Badge variant="secondary" className="text-green-600 bg-green-50">
+              {trend}
+            </Badge>
+          </div>
+          <div className="mt-4">
+            <div className="flex items-baseline space-x-1">
+              <motion.span
+                className="text-3xl font-bold text-gray-900"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+              >
+                {value}
+              </motion.span>
+              <span className="text-sm text-gray-500">{unit}</span>
+            </div>
+            <p className="text-sm text-gray-600 mt-1">{title}</p>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
 
-const TodoItem = ({ label, isDone }: { label: string, isDone: boolean }) => (
-  <li className="flex items-center">
-    <CheckSquare className={`mr-3 ${isDone ? "text-brand" : "text-gray-300"}`} />
-    <span className={`${isDone ? "line-through text-gray-400" : "text-gray-700"}`}>{label}</span>
-  </li>
-);
+// Todo List Card Component
+const TodoListCard = () => {
+  const todos = [
+    { id: 1, label: "完成第三章的在线测试", isDone: true, priority: "high" },
+    { id: 2, label: "观看 '导数应用' 视频", isDone: false, priority: "medium" },
+    { id: 3, label: "阅读 '积分方法' 补充材料", isDone: false, priority: "low" },
+    { id: 4, label: "提交数学作业", isDone: false, priority: "high" }
+  ];
 
-// My Courses Card
-const CoursesCard = () => (
-  <Card>
-    <h3 className="font-bold text-xl text-gray-800 mb-4">我的课程</h3>
-    <div className="space-y-4">
-        <CourseItem title="高等数学 (上)" progress={75} />
-        <CourseItem title="线性代数" progress={40} />
-    </div>
-  </Card>
-);
+  return (
+    <Card className="border-0 shadow-lg">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-xl font-bold flex items-center gap-2">
+            <CheckSquare className="w-5 h-5 text-blue-600" />
+            待办事项
+          </CardTitle>
+          <Badge variant="outline">{todos.filter(t => !t.isDone).length} 待完成</Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {todos.map((todo, index) => (
+            <motion.div
+              key={todo.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <TodoItem {...todo} />
+            </motion.div>
+          ))}
+        </div>
+        <Button variant="ghost" className="w-full mt-4 text-blue-600 hover:text-blue-700">
+          查看全部任务 <ChevronRight className="w-4 h-4 ml-1" />
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
 
-const CourseItem = ({ title, progress }: { title: string, progress: number }) => (
-    <div>
-        <div className="flex justify-between items-center mb-1">
-            <p className="font-semibold text-gray-700">{title}</p>
-            <p className="text-sm text-gray-500">{progress}%</p>
+// Todo Item Component
+interface TodoItemProps {
+  label: string;
+  isDone: boolean;
+  priority: 'high' | 'medium' | 'low';
+}
+
+const TodoItem = ({ label, isDone, priority }: TodoItemProps) => {
+  const priorityColors = {
+    high: 'bg-red-100 text-red-600',
+    medium: 'bg-yellow-100 text-yellow-600',
+    low: 'bg-green-100 text-green-600'
+  };
+
+  return (
+    <motion.div
+      className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+    >
+      <div className="flex items-center space-x-3">
+        <motion.div
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          <CheckSquare
+            className={`w-5 h-5 cursor-pointer ${
+              isDone ? "text-green-600 fill-green-100" : "text-gray-400"
+            }`}
+          />
+        </motion.div>
+        <span className={`${isDone ? "line-through text-gray-400" : "text-gray-700"} font-medium`}>
+          {label}
+        </span>
+      </div>
+      <Badge
+        variant="secondary"
+        className={`text-xs ${priorityColors[priority]}`}
+      >
+        {priority === 'high' ? '高' : priority === 'medium' ? '中' : '低'}
+      </Badge>
+    </motion.div>
+  );
+};
+
+// Courses Card Component
+const CoursesCard = () => {
+  const courses = [
+    {
+      id: 1,
+      title: "高等数学 (上)",
+      progress: 75,
+      instructor: "李教授",
+      nextClass: "2024-03-15 14:00",
+      color: "blue"
+    },
+    {
+      id: 2,
+      title: "线性代数",
+      progress: 40,
+      instructor: "王教授",
+      nextClass: "2024-03-16 10:00",
+      color: "purple"
+    },
+    {
+      id: 3,
+      title: "概率论与数理统计",
+      progress: 60,
+      instructor: "张教授",
+      nextClass: "2024-03-17 16:00",
+      color: "green"
+    }
+  ];
+
+  return (
+    <Card className="border-0 shadow-lg">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-xl font-bold flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-blue-600" />
+            我的课程
+          </CardTitle>
+          <Button variant="ghost" size="sm" className="text-blue-600">
+            查看全部 <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {courses.map((course, index) => (
+            <motion.div
+              key={course.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <CourseItem {...course} />
+            </motion.div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Course Item Component
+interface CourseItemProps {
+  title: string;
+  progress: number;
+  instructor: string;
+  nextClass: string;
+  color: 'blue' | 'purple' | 'green';
+}
+
+const CourseItem = ({ title, progress, instructor, nextClass, color }: CourseItemProps) => {
+  const colorClasses = {
+    blue: 'from-blue-500 to-blue-600',
+    purple: 'from-purple-500 to-purple-600',
+    green: 'from-green-500 to-green-600'
+  };
+
+  return (
+    <motion.div
+      className="p-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-all cursor-pointer"
+      whileHover={{ scale: 1.02, y: -2 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <h4 className="font-semibold text-gray-900 mb-1">{title}</h4>
+          <p className="text-sm text-gray-500">授课教师：{instructor}</p>
+        </div>
+        <div className="text-right">
+          <div className="text-sm font-medium text-gray-900">{progress}%</div>
+          <div className="text-xs text-gray-500">完成度</div>
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+          <span>学习进度</span>
+          <span>{progress}/100</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
-            <div className="bg-brand h-2 rounded-full" style={{ width: `${progress}%` }}></div>
+          <motion.div
+            className={`h-2 rounded-full bg-gradient-to-r ${colorClasses[color]}`}
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 1, delay: 0.5 }}
+          />
         </div>
-    </div>
-);
+      </div>
 
+      <div className="flex items-center justify-between">
+        <div className="flex items-center text-xs text-gray-500">
+          <Calendar className="w-3 h-3 mr-1" />
+          下次课程：{nextClass}
+        </div>
+        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs">
+          <PlayCircle className="w-3 h-3 mr-1" />
+          继续学习
+        </Button>
+      </div>
+    </motion.div>
+  );
+};
 
-// Ability Model Card
-const AbilityCard = () => (
-  <Card>
-    <h3 className="font-bold text-xl text-gray-800 mb-2">综合能力评估</h3>
-    <div className="h-80">
-        <AbilityRadarChart />
-    </div>
-  </Card>
-);
+// AI Recommendation Card
+const AIRecommendationCard = () => {
+  return (
+    <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-blue-50">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg font-bold flex items-center gap-2">
+          <Brain className="w-5 h-5 text-purple-600" />
+          AI 学习建议
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <motion.div
+          className="space-y-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          <div className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-purple-100">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Lightbulb className="w-4 h-4 text-purple-600" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-medium text-gray-900 mb-1">重点关注</h4>
+              <p className="text-sm text-gray-600">
+                根据你最近的练习记录，建议加强 "函数与极限" 章节的学习。
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-blue-100">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Target className="w-4 h-4 text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-medium text-gray-900 mb-1">学习计划</h4>
+              <p className="text-sm text-gray-600">
+                建议每天完成 2-3 道相关练习题，预计 1 周内可以显著提升。
+              </p>
+            </div>
+          </div>
+
+          <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+            查看详细建议
+          </Button>
+        </motion.div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Quick Actions Card
+const QuickActionsCard = () => {
+  const actions = [
+    { icon: <BookMarked className="w-5 h-5" />, label: "开始学习", color: "blue" },
+    { icon: <Target className="w-5 h-5" />, label: "练习题目", color: "green" },
+    { icon: <Calendar className="w-5 h-5" />, label: "查看日程", color: "purple" },
+    { icon: <Award className="w-5 h-5" />, label: "学习报告", color: "orange" }
+  ];
+
+  return (
+    <Card className="border-0 shadow-lg">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg font-bold flex items-center gap-2">
+          <Zap className="w-5 h-5 text-yellow-600" />
+          快速操作
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-3">
+          {actions.map((action, index) => (
+            <motion.div
+              key={action.label}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.1 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button
+                variant="ghost"
+                className="w-full h-16 flex flex-col items-center justify-center space-y-1 hover:bg-gray-50"
+              >
+                <div className={`p-2 rounded-lg ${
+                  action.color === 'blue' ? 'bg-blue-100 text-blue-600' :
+                  action.color === 'green' ? 'bg-green-100 text-green-600' :
+                  action.color === 'purple' ? 'bg-purple-100 text-purple-600' :
+                  'bg-orange-100 text-orange-600'
+                }`}>
+                  {action.icon}
+                </div>
+                <span className="text-xs font-medium">{action.label}</span>
+              </Button>
+            </motion.div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Ability Assessment Card
+const AbilityCard = () => {
+  const abilities = [
+    { name: "计算能力", score: 85, color: "blue" },
+    { name: "逻辑思维", score: 92, color: "purple" },
+    { name: "空间想象", score: 78, color: "green" },
+    { name: "语言表达", score: 88, color: "orange" }
+  ];
+
+  return (
+    <Card className="border-0 shadow-lg">
+      <CardHeader className="pb-6">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-xl font-bold flex items-center gap-2">
+            <Brain className="w-6 h-6 text-purple-600" />
+            综合能力评估
+          </CardTitle>
+          <div className="flex items-center space-x-2">
+            <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+            <span className="text-sm font-medium text-gray-600">综合评分: 86分</span>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Radar Chart */}
+          <div className="h-80">
+            <AbilityRadarChart />
+          </div>
+
+          {/* Ability Breakdown */}
+          <div className="space-y-6">
+            <h4 className="font-semibold text-gray-900 mb-4">能力详细分析</h4>
+            {abilities.map((ability, index) => (
+              <motion.div
+                key={ability.name}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">{ability.name}</span>
+                  <span className="text-sm font-bold text-gray-900">{ability.score}分</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <motion.div
+                    className={`h-2 rounded-full ${
+                      ability.color === 'blue' ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
+                      ability.color === 'purple' ? 'bg-gradient-to-r from-purple-500 to-purple-600' :
+                      ability.color === 'green' ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                      'bg-gradient-to-r from-orange-500 to-orange-600'
+                    }`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${ability.score}%` }}
+                    transition={{ duration: 1, delay: 0.5 + index * 0.1 }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>需要提升</span>
+                  <span>优秀</span>
+                </div>
+              </motion.div>
+            ))}
+
+            <motion.div
+              className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }}
+            >
+              <div className="flex items-center space-x-2 mb-2">
+                <TrendingUp className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-medium text-gray-900">提升建议</span>
+              </div>
+              <p className="text-xs text-gray-600">
+                你的逻辑思维能力表现优秀！建议继续保持，同时可以加强空间想象能力的训练。
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};

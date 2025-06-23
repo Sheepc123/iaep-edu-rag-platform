@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { cn } from "@/lib/utils";
+import { Link, useLocation } from "react-router-dom";
 
 const StudentLayout = ({ children }: { children: ReactNode }) => {
   return (
@@ -22,17 +23,30 @@ const StudentLayout = ({ children }: { children: ReactNode }) => {
 
 const Sidebar = () => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  
+    const location = useLocation();
+
+    const navItems = [
+      { icon: <LayoutDashboard size={20} />, label: "个人中心", path: "/student/dashboard" },
+      { icon: <BookCopy size={20} />, label: "课程中心", path: "/student/courses" },
+      { icon: <PencilRuler size={20} />, label: "练习系统", path: "/student/exercises" },
+      { icon: <BrainCircuit size={20} />, label: "学习中心", path: "/student/learning" }
+    ];
+
     return (
       <aside className="w-64 flex flex-col bg-white border-r border-subtle-border">
         <div className="p-6">
           <h1 className="text-2xl font-bold text-brand">智能教育平台</h1>
         </div>
         <nav className="flex-1 px-4 space-y-2">
-          <NavItem icon={<LayoutDashboard size={20} />} label="个人中心" isActive />
-          <NavItem icon={<BookCopy size={20} />} label="课程中心" />
-          <NavItem icon={<PencilRuler size={20} />} label="练习系统" />
-          <NavItem icon={<BrainCircuit size={20} />} label="学习中心" />
+          {navItems.map((item) => (
+            <NavItem
+              key={item.path}
+              icon={item.icon}
+              label={item.label}
+              path={item.path}
+              isActive={location.pathname === item.path}
+            />
+          ))}
         </nav>
         <div className="p-4 border-t border-subtle-border">
             <div className="relative">
@@ -42,7 +56,7 @@ const Sidebar = () => {
                         <NavItem icon={<LogOut size={20} />} label="退出登录" isSubItem />
                     </div>
                 )}
-                <div 
+                <div
                     className="flex items-center p-2 rounded-lg cursor-pointer hover:bg-subtle-background"
                     onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                 >
@@ -59,11 +73,12 @@ const Sidebar = () => {
 interface NavItemProps {
     icon: ReactNode;
     label: string;
+    path?: string;
     isActive?: boolean;
     isSubItem?: boolean;
 }
-  
-const NavItem = ({ icon, label, isActive, isSubItem }: NavItemProps) => {
+
+const NavItem = ({ icon, label, path, isActive, isSubItem }: NavItemProps) => {
     const itemClasses = cn(
         "flex items-center py-2 px-4 rounded-lg cursor-pointer transition-colors duration-200",
         {
@@ -72,6 +87,16 @@ const NavItem = ({ icon, label, isActive, isSubItem }: NavItemProps) => {
             "text-gray-600 hover:bg-subtle-background w-full text-left": isSubItem,
         }
     );
+
+    if (path && !isSubItem) {
+      return (
+        <Link to={path} className={itemClasses}>
+          <div className="mr-4">{icon}</div>
+          <span>{label}</span>
+        </Link>
+      );
+    }
+
     return (
       <a href="#" className={itemClasses}>
         <div className="mr-4">{icon}</div>
