@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Bot, 
-  User, 
-  Send, 
-  Sparkles, 
-  Copy, 
-  ThumbsUp, 
+import {
+  Bot,
+  User,
+  Send,
+  Sparkles,
+  Copy,
+  ThumbsUp,
   ThumbsDown,
   RefreshCw,
   BookOpen,
@@ -16,14 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-interface Message {
-  id: string;
-  content: string;
-  sender: 'user' | 'ai';
-  timestamp: Date;
-  type?: 'text' | 'suggestion' | 'exercise';
-}
+import { useAI, Message } from "@/contexts/AIContext";
 
 interface AIChatProps {
   isOpen: boolean;
@@ -33,17 +26,14 @@ interface AIChatProps {
 export const AIChat = ({ isOpen, onClose }: AIChatProps) => {
   console.log('AIChat render:', { isOpen }); // 调试日志
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      content: '你好！我是你的AI学习助手小智，我可以帮助你：\n\n📚 解答学习问题\n🎯 制定学习计划\n📊 分析学习进度\n💡 提供学习建议\n\n有什么可以帮助你的吗？',
-      sender: 'ai',
-      timestamp: new Date(),
-      type: 'text'
-    }
-  ]);
+  const {
+    currentMessages: messages,
+    isTyping,
+    setIsTyping,
+    addMessage
+  } = useAI();
+
   const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 自动滚动到最新消息
@@ -66,7 +56,8 @@ export const AIChat = ({ isOpen, onClose }: AIChatProps) => {
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    addMessage(userMessage);
+    const userInput = inputValue;
     setInputValue('');
     setIsTyping(true);
 
@@ -74,12 +65,12 @@ export const AIChat = ({ isOpen, onClose }: AIChatProps) => {
     setTimeout(() => {
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: generateAIResponse(inputValue),
+        content: generateAIResponse(userInput),
         sender: 'ai',
         timestamp: new Date(),
         type: 'text'
       };
-      setMessages(prev => [...prev, aiMessage]);
+      addMessage(aiMessage);
       setIsTyping(false);
     }, 1500);
   };
@@ -306,7 +297,7 @@ export const AIChat = ({ isOpen, onClose }: AIChatProps) => {
                     <textarea
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
-                      onKeyPress={(e) => {
+                      onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
                           handleSendMessage();

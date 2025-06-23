@@ -3,6 +3,7 @@ import {
   BookCopy,
   PencilRuler,
   BrainCircuit,
+  Bot,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -31,7 +32,8 @@ const Sidebar = () => {
       { icon: <LayoutDashboard size={20} />, label: "个人中心", path: "/student/dashboard" },
       { icon: <BookCopy size={20} />, label: "课程中心", path: "/student/courses" },
       { icon: <PencilRuler size={20} />, label: "练习系统", path: "/student/exercises" },
-      { icon: <BrainCircuit size={20} />, label: "学习中心", path: "/student/learning" }
+      { icon: <BrainCircuit size={20} />, label: "学习中心", path: "/student/learning" },
+      { icon: <Bot size={20} />, label: "AI助手", path: "/student/ai-assistant" }
     ];
 
     return (
