@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 // Animation variants
 const containerVariants = {
@@ -148,7 +149,7 @@ const recentExercises = [
 ];
 
 export const Exercises = () => {
-  const [activeTab, setActiveTab] = useState("practice");
+  const navigate = useNavigate();
 
   return (
     <StudentLayout>
@@ -238,7 +239,7 @@ export const Exercises = () => {
                     whileHover="hover"
                     variants={hoverVariants}
                   >
-                    <ExerciseCategoryCard category={category} />
+                    <ExerciseCategoryCard category={category} navigate={navigate} />
                   </motion.div>
                 ))}
               </div>
@@ -266,7 +267,7 @@ export const Exercises = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <ExerciseItem exercise={exercise} />
+                    <ExerciseItem exercise={exercise} navigate={navigate} />
                   </motion.div>
                 ))}
               </div>
@@ -330,9 +331,10 @@ const StatsCard = ({ icon, title, value, subtitle, color }: StatsCardProps) => {
 // Exercise Category Card Component
 interface ExerciseCategoryCardProps {
   category: typeof exerciseCategories[0];
+  navigate: (path: string) => void;
 }
 
-const ExerciseCategoryCard = ({ category }: ExerciseCategoryCardProps) => {
+const ExerciseCategoryCard = ({ category, navigate }: ExerciseCategoryCardProps) => {
   const colorClasses = {
     blue: 'from-blue-500 to-blue-600 bg-blue-50 text-blue-600',
     green: 'from-green-500 to-green-600 bg-green-50 text-green-600',
@@ -367,7 +369,11 @@ const ExerciseCategoryCard = ({ category }: ExerciseCategoryCardProps) => {
             </div>
           </div>
 
-          <Button className="w-full" size="sm">
+          <Button
+            className="w-full"
+            size="sm"
+            onClick={() => navigate(`/student/exercises/practice/${category.id}`)}
+          >
             <PlayCircle className="w-4 h-4 mr-2" />
             开始练习
           </Button>
@@ -380,9 +386,10 @@ const ExerciseCategoryCard = ({ category }: ExerciseCategoryCardProps) => {
 // Exercise Item Component
 interface ExerciseItemProps {
   exercise: typeof recentExercises[0];
+  navigate: (path: string) => void;
 }
 
-const ExerciseItem = ({ exercise }: ExerciseItemProps) => {
+const ExerciseItem = ({ exercise, navigate }: ExerciseItemProps) => {
   const statusConfig = {
     completed: {
       icon: <CheckCircle className="w-5 h-5 text-green-600" />,
@@ -467,6 +474,7 @@ const ExerciseItem = ({ exercise }: ExerciseItemProps) => {
               <Button
                 size="sm"
                 variant={exercise.status === 'completed' ? 'outline' : 'default'}
+                onClick={() => navigate(`/student/exercises/practice/${exercise.id}`)}
               >
                 {exercise.status === 'completed' ? '查看详情' :
                  exercise.status === 'in-progress' ? '继续练习' : '开始练习'}

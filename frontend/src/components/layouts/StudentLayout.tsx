@@ -15,11 +15,16 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { SimpleAIButton } from "@/components/ai/SimpleAIButton";
 import { motion, AnimatePresence } from "framer-motion";
 
-const StudentLayout = ({ children }: { children: ReactNode }) => {
+interface StudentLayoutProps {
+  children: ReactNode;
+  fullScreen?: boolean;
+}
+
+const StudentLayout = ({ children, fullScreen = false }: StudentLayoutProps) => {
   return (
     <div className="flex min-h-screen w-full bg-white font-sans relative">
       <Sidebar />
-      <main className="flex-1 p-8 tech-background">
+      <main className={`flex-1 tech-background ${fullScreen ? 'p-0' : 'p-8'}`}>
         {children}
       </main>
       <SimpleAIButton />
