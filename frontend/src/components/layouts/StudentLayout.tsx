@@ -4,6 +4,7 @@ import {
   PencilRuler,
   BrainCircuit,
   Bot,
+  MessageCircle,
   Settings,
   LogOut,
   User,
@@ -62,6 +63,7 @@ const Sidebar = () => {
       { icon: <BookCopy size={20} />, label: "课程中心", path: "/student/courses" },
       { icon: <PencilRuler size={20} />, label: "练习系统", path: "/student/exercises" },
       { icon: <BrainCircuit size={20} />, label: "学习中心", path: "/student/learning" },
+      { icon: <MessageCircle size={20} />, label: "聊天室", path: "/student/chatroom" },
       { icon: <Bot size={20} />, label: "AI助手", path: "/student/ai-assistant" }
     ];
 
