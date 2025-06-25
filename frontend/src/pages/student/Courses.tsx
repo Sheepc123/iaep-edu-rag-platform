@@ -3,21 +3,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { 
-  BookOpen, 
-  Clock, 
-  Users, 
-  Star, 
-  PlayCircle, 
+import {
+  BookOpen,
+  Clock,
+  Users,
+  Star,
+  PlayCircle,
   Calendar,
   Filter,
   Search,
   ChevronRight,
   Award,
-  TrendingUp
+  TrendingUp,
+  ChevronLeft,
+  Loader2,
+  Heart,
+  Eye
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { courseAPI, Course } from "@/services/api";
+import { useToast } from "@/components/ui/use-toast";
 
 // Animation variants
 const containerVariants = {
@@ -61,61 +68,104 @@ const hoverVariants = {
   }
 };
 
-// Mock data
-const courses = [
-  {
-    id: 1,
-    title: "高等数学 (上)",
-    instructor: "李教授",
-    progress: 75,
-    totalLessons: 24,
-    completedLessons: 18,
-    rating: 4.8,
-    students: 156,
-    duration: "16周",
-    difficulty: "中级",
-    category: "数学基础",
-    nextClass: "2024-03-15 14:00",
-    description: "涵盖极限、导数、积分等核心概念，为后续数学课程打下坚实基础。",
-    image: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=200&fit=crop"
-  },
-  {
-    id: 2,
-    title: "线性代数",
-    instructor: "王教授",
-    progress: 40,
-    totalLessons: 20,
-    completedLessons: 8,
-    rating: 4.6,
-    students: 142,
-    duration: "12周",
-    difficulty: "中级",
-    category: "数学基础",
-    nextClass: "2024-03-16 10:00",
-    description: "学习矩阵运算、线性方程组、特征值等重要概念。",
-    image: "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=400&h=200&fit=crop"
-  },
-  {
-    id: 3,
-    title: "概率论与数理统计",
-    instructor: "张教授",
-    progress: 60,
-    totalLessons: 18,
-    completedLessons: 11,
-    rating: 4.7,
-    students: 128,
-    duration: "14周",
-    difficulty: "高级",
-    category: "统计学",
-    nextClass: "2024-03-17 16:00",
-    description: "掌握概率分布、假设检验、回归分析等统计方法。",
-    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=200&fit=crop"
-  }
-];
+
 
 export const Courses = () => {
-  const [filter, setFilter] = useState("all");
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCourses, setTotalCourses] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("");
+  const [showFilters, setShowFilters] = useState(false);
+
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const coursesPerPage = 12;
+  const categories = ["数学基础", "编程语言", "计算机科学", "Web开发", "人工智能", "数据科学"];
+  const difficulties = ["easy", "medium", "hard"];
+
+  // 获取课程数据
+  const fetchCourses = async (page: number = 1, reset: boolean = false) => {
+    try {
+      setLoading(true);
+
+      const params = {
+        skip: (page - 1) * coursesPerPage,
+        limit: coursesPerPage,
+        is_published: true,
+        sort_by: "created_at",
+        sort_order: "desc",
+        ...(searchTerm && { search: searchTerm }),
+        ...(selectedCategory && { category: selectedCategory }),
+        ...(selectedDifficulty && { difficulty: selectedDifficulty })
+      };
+
+      console.log("🔍 正在获取课程数据，参数:", params);
+      const response = await courseAPI.getCourses(params);
+      console.log("📚 API响应:", response);
+
+      if (reset || page === 1) {
+        setCourses(response.courses);
+      } else {
+        setCourses(prev => [...prev, ...response.courses]);
+      }
+
+      setTotalCourses(response.total);
+      setHasMore(response.has_more);
+      setCurrentPage(page);
+
+      console.log(`✅ 成功加载 ${response.courses.length} 门课程，总共 ${response.total} 门`);
+
+    } catch (error: any) {
+      console.error("❌ 获取课程失败:", error);
+      console.error("错误详情:", error.response?.data || error.message);
+      toast({
+        variant: "destructive",
+        title: "加载失败",
+        description: `无法加载课程数据: ${error.response?.data?.detail || error.message || "请稍后重试"}`,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 初始加载课程数据
+  useEffect(() => {
+    fetchCourses(1, true);
+  }, [searchTerm, selectedCategory, selectedDifficulty]);
+
+  // 处理搜索
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentPage(1);
+    fetchCourses(1, true);
+  };
+
+  // 处理筛选
+  const handleFilter = (category: string, difficulty: string) => {
+    setSelectedCategory(category);
+    setSelectedDifficulty(difficulty);
+    setCurrentPage(1);
+  };
+
+  // 加载更多课程
+  const loadMoreCourses = () => {
+    if (hasMore && !loading) {
+      fetchCourses(currentPage + 1, false);
+    }
+  };
+
+  // 清除筛选条件
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSelectedCategory("");
+    setSelectedDifficulty("");
+    setCurrentPage(1);
+  };
 
   return (
     <StudentLayout>
@@ -127,21 +177,82 @@ export const Courses = () => {
       >
         {/* Header */}
         <motion.div variants={cardVariants}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">课程中心</h1>
-              <p className="text-gray-600 mt-2">探索和学习您感兴趣的课程</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">课程中心</h1>
+                <p className="text-gray-600 mt-2">探索和学习您感兴趣的课程 - 共 {totalCourses} 门课程</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+              >
                 <Filter className="w-4 h-4 mr-2" />
                 筛选
               </Button>
-              <Button variant="outline" size="sm">
-                <Search className="w-4 h-4 mr-2" />
+            </div>
+
+            {/* Search Bar */}
+            <form onSubmit={handleSearch} className="flex gap-2">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="搜索课程..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <Button type="submit" size="sm">
                 搜索
               </Button>
-            </div>
+              {(searchTerm || selectedCategory || selectedDifficulty) && (
+                <Button type="button" variant="outline" size="sm" onClick={clearFilters}>
+                  清除
+                </Button>
+              )}
+            </form>
+
+            {/* Filters */}
+            {showFilters && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="p-4 bg-gray-50 rounded-lg space-y-4"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">课程分类</label>
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => handleFilter(e.target.value, selectedDifficulty)}
+                      className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">全部分类</option>
+                      {categories.map(category => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">难度级别</label>
+                    <select
+                      value={selectedDifficulty}
+                      onChange={(e) => handleFilter(selectedCategory, e.target.value)}
+                      className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">全部难度</option>
+                      <option value="easy">简单</option>
+                      <option value="medium">中等</option>
+                      <option value="hard">困难</option>
+                    </select>
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </div>
         </motion.div>
 
@@ -189,20 +300,71 @@ export const Courses = () => {
         </motion.div>
 
         {/* Course Grid */}
-        <motion.div 
-          className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"
-          variants={containerVariants}
-        >
-          {courses.map((course, index) => (
+        {loading && courses.length === 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+            {[...Array(6)].map((_, index) => (
+              <div key={index} className="animate-pulse">
+                <div className="bg-gray-200 h-64 rounded-lg mb-4"></div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : courses.length > 0 ? (
+          <>
             <motion.div
-              key={course.id}
-              variants={cardVariants}
-              whileHover="hover"
+              className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"
+              variants={containerVariants}
             >
-              <CourseCard course={course} />
+              {courses.map((course, index) => (
+                <motion.div
+                  key={course.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover="hover"
+                  variants={hoverVariants}
+                >
+                  <CourseCard course={course} />
+                </motion.div>
+              ))}
             </motion.div>
-          ))}
-        </motion.div>
+
+            {/* Load More Button */}
+            {hasMore && (
+              <div className="text-center">
+                <Button
+                  onClick={loadMoreCourses}
+                  disabled={loading}
+                  variant="outline"
+                  className="min-w-32"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      加载中...
+                    </>
+                  ) : (
+                    "加载更多"
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* Pagination Info */}
+            <div className="text-center text-sm text-gray-500">
+              已显示 {courses.length} / {totalCourses} 门课程
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-12">
+            <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">暂无课程</h3>
+            <p className="text-gray-500">没有找到符合条件的课程，请尝试调整搜索条件</p>
+          </div>
+        )}
       </motion.div>
     </StudentLayout>
   );
@@ -259,90 +421,97 @@ const StatsCard = ({ icon, title, value, subtitle, color }: StatsCardProps) => {
 
 // Course Card Component
 interface CourseCardProps {
-  course: typeof courses[0];
+  course: Course;
 }
 
 const CourseCard = ({ course }: CourseCardProps) => {
+  const navigate = useNavigate();
+
+  const difficultyLabels = {
+    easy: "简单",
+    medium: "中等",
+    hard: "困难"
+  };
+
   const difficultyColors = {
-    '初级': 'bg-green-100 text-green-600',
-    '中级': 'bg-yellow-100 text-yellow-600',
-    '高级': 'bg-red-100 text-red-600'
+    easy: "bg-green-100 text-green-600",
+    medium: "bg-yellow-100 text-yellow-600",
+    hard: "bg-red-100 text-red-600"
+  };
+
+  const handleViewCourse = () => {
+    navigate(`/student/courses/${course.id}`);
   };
 
   return (
-    <motion.div
-      whileHover="hover"
-      variants={hoverVariants}
-    >
-      <Card className="border-0 shadow-lg overflow-hidden h-full">
-        <div className="relative">
-          <img 
-            src={course.image} 
-            alt={course.title}
-            className="w-full h-48 object-cover"
-          />
-          <div className="absolute top-4 right-4">
-            <Badge 
-              variant="secondary" 
-              className={difficultyColors[course.difficulty as keyof typeof difficultyColors]}
-            >
-              {course.difficulty}
+    <Card className="border-0 shadow-lg overflow-hidden h-full hover:shadow-xl transition-all duration-300">
+      <div className="relative">
+        <img
+          src={course.cover_image || "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=200&fit=crop"}
+          alt={course.title}
+          className="w-full h-48 object-cover"
+        />
+        <div className="absolute top-4 right-4">
+          <Badge
+            variant="secondary"
+            className={difficultyColors[course.difficulty as keyof typeof difficultyColors] || difficultyColors.medium}
+          >
+            {difficultyLabels[course.difficulty as keyof typeof difficultyLabels] || course.difficulty}
+          </Badge>
+        </div>
+        {course.category && (
+          <div className="absolute top-4 left-4">
+            <Badge variant="secondary" className="bg-white/90 text-gray-700">
+              {course.category}
             </Badge>
           </div>
-        </div>
-        
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">{course.title}</h3>
-              <p className="text-sm text-gray-600 line-clamp-2">{course.description}</p>
-            </div>
+        )}
+      </div>
 
-            <div className="flex items-center justify-between text-sm text-gray-500">
-              <div className="flex items-center space-x-1">
-                <Users className="w-4 h-4" />
-                <span>{course.students}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span>{course.rating}</span>
-              </div>
+      <CardContent className="p-6">
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">{course.title}</h3>
+            <p className="text-sm text-gray-600 line-clamp-2">{course.description}</p>
+          </div>
+
+          <div className="flex items-center justify-between text-sm text-gray-500">
+            <div className="flex items-center space-x-1">
+              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+              <span>{course.rating.toFixed(1)}</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <Users className="w-4 h-4" />
+              <span>{course.enrolled_students} 学生</span>
+            </div>
+            {course.duration && (
               <div className="flex items-center space-x-1">
                 <Clock className="w-4 h-4" />
-                <span>{course.duration}</span>
+                <span>{Math.round(course.duration / 60)}h</span>
               </div>
-            </div>
+            )}
+          </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">学习进度</span>
-                <span className="font-medium">{course.completedLessons}/{course.totalLessons} 课时</span>
-              </div>
-              <Progress value={course.progress} className="h-2" />
-              <div className="text-right">
-                <span className="text-sm font-medium text-gray-900">{course.progress}% 完成</span>
-              </div>
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="text-sm text-gray-600">
+              <span className="font-medium">{course.instructor_name}</span>
             </div>
-
-            <div className="flex items-center justify-between pt-4 border-t">
-              <div className="text-sm text-gray-500">
-                <Calendar className="w-4 h-4 inline mr-1" />
-                下次课程：{course.nextClass}
-              </div>
-            </div>
-
-            <div className="flex space-x-2 pt-2">
-              <Button className="flex-1" size="sm">
-                <PlayCircle className="w-4 h-4 mr-2" />
-                继续学习
-              </Button>
-              <Button variant="outline" size="sm">
-                详情 <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
+            <div className="text-sm text-gray-500">
+              {course.total_lessons} 课时
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+
+          <div className="flex space-x-2 pt-2">
+            <Button className="flex-1" size="sm" onClick={handleViewCourse}>
+              <Eye className="w-4 h-4 mr-2" />
+              查看课程
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleViewCourse}>
+              <Heart className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };

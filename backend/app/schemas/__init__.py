@@ -8,9 +8,19 @@ from .auth import (
     StudentProfileCreate, StudentProfileUpdate, StudentProfileResponse
 )
 
+from .course import (
+    CourseCreate, CourseUpdate, CourseResponse, CourseListQuery,
+    LessonCreate, LessonUpdate, LessonResponse,
+    CourseEnrollRequest, CourseEnrollResponse,
+    LessonProgressUpdate, LessonProgressResponse,
+    CourseRatingCreate, CourseStatistics, StudyPlanCreate,
+    DifficultyLevel, LessonType
+)
+
 __all__ = [
+    # 认证相关
     "UserRegister",
-    "UserLogin", 
+    "UserLogin",
     "TokenResponse",
     "TokenRefresh",
     "PasswordChange",
@@ -18,6 +28,24 @@ __all__ = [
     "AuthResponse",
     "UserUpdate",
     "StudentProfileCreate",
-    "StudentProfileUpdate", 
-    "StudentProfileResponse"
+    "StudentProfileUpdate",
+    "StudentProfileResponse",
+
+    # 课程相关
+    "CourseCreate",
+    "CourseUpdate",
+    "CourseResponse",
+    "CourseListQuery",
+    "LessonCreate",
+    "LessonUpdate",
+    "LessonResponse",
+    "CourseEnrollRequest",
+    "CourseEnrollResponse",
+    "LessonProgressUpdate",
+    "LessonProgressResponse",
+    "CourseRatingCreate",
+    "CourseStatistics",
+    "StudyPlanCreate",
+    "DifficultyLevel",
+    "LessonType"
 ]

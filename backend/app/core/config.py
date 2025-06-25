@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
     
     # 数据库配置
-    DATABASE_URL: str = "sqlite:///./education_platform.db"
+    DATABASE_URL: str = "sqlite:///./database/data/education_platform.db"
     
     # JWT配置
     SECRET_KEY: str = "your-secret-key-change-in-production"

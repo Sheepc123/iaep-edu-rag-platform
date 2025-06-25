@@ -3,10 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { 
-  BrainCircuit, 
-  Calendar, 
-  BookMarked, 
+import {
+  BrainCircuit,
+  Calendar,
+  BookMarked,
   History,
   Target,
   Star,
@@ -18,10 +18,16 @@ import {
   Eye,
   Filter,
   Search,
-  Plus
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  Users
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { courseAPI, Course } from "@/services/api";
+import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 // Animation variants
 const containerVariants = {
@@ -164,13 +170,93 @@ const recentHistory = [
 
 export const Learning = () => {
   const [activeTab, setActiveTab] = useState("plan");
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCourses, setTotalCourses] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("");
+
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const coursesPerPage = 9;
 
   const tabs = [
     { id: "plan", label: "学习计划", icon: <Target className="w-4 h-4" /> },
-    { id: "resources", label: "学习资源", icon: <BookMarked className="w-4 h-4" /> },
+    { id: "resources", label: "课程资源", icon: <BookMarked className="w-4 h-4" /> },
     { id: "favorites", label: "收藏夹", icon: <Heart className="w-4 h-4" /> },
     { id: "history", label: "学习历史", icon: <History className="w-4 h-4" /> }
   ];
+
+  // 获取课程数据
+  const fetchCourses = async (page: number = 1, reset: boolean = false) => {
+    try {
+      setLoading(true);
+
+      const params = {
+        skip: (page - 1) * coursesPerPage,
+        limit: coursesPerPage,
+        is_published: true,
+        sort_by: "created_at",
+        sort_order: "desc",
+        ...(searchTerm && { search: searchTerm }),
+        ...(selectedCategory && { category: selectedCategory }),
+        ...(selectedDifficulty && { difficulty: selectedDifficulty })
+      };
+
+      const response = await courseAPI.getCourses(params);
+
+      if (reset || page === 1) {
+        setCourses(response.courses);
+      } else {
+        setCourses(prev => [...prev, ...response.courses]);
+      }
+
+      setTotalCourses(response.total);
+      setHasMore(response.has_more);
+      setCurrentPage(page);
+
+    } catch (error: any) {
+      console.error("获取课程失败:", error);
+      toast({
+        variant: "destructive",
+        title: "加载失败",
+        description: "无法加载课程数据，请稍后重试",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 初始加载课程数据
+  useEffect(() => {
+    if (activeTab === "resources") {
+      fetchCourses(1, true);
+    }
+  }, [activeTab, searchTerm, selectedCategory, selectedDifficulty]);
+
+  // 处理搜索
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    setCurrentPage(1);
+  };
+
+  // 处理筛选
+  const handleFilter = (category: string, difficulty: string) => {
+    setSelectedCategory(category);
+    setSelectedDifficulty(difficulty);
+    setCurrentPage(1);
+  };
+
+  // 加载更多课程
+  const loadMoreCourses = () => {
+    if (hasMore && !loading) {
+      fetchCourses(currentPage + 1, false);
+    }
+  };
 
   return (
     <StudentLayout>
@@ -215,11 +301,11 @@ export const Learning = () => {
             />
           </motion.div>
           <motion.div variants={cardVariants}>
-            <StatsCard 
+            <StatsCard
               icon={<BookMarked className="w-6 h-6" />}
-              title="学习资源"
-              value="156"
-              subtitle="个资源"
+              title="课程资源"
+              value={totalCourses.toString()}
+              subtitle="门课程"
               color="green"
             />
           </motion.div>
@@ -266,7 +352,21 @@ export const Learning = () => {
               
               <div className="p-6">
                 {activeTab === "plan" && <LearningPlanContent />}
-                {activeTab === "resources" && <ResourcesContent />}
+                {activeTab === "resources" && (
+                  <ResourcesContent
+                    courses={courses}
+                    loading={loading}
+                    hasMore={hasMore}
+                    totalCourses={totalCourses}
+                    currentPage={currentPage}
+                    onLoadMore={loadMoreCourses}
+                    onSearch={handleSearch}
+                    onFilter={handleFilter}
+                    searchTerm={searchTerm}
+                    selectedCategory={selectedCategory}
+                    selectedDifficulty={selectedDifficulty}
+                  />
+                )}
                 {activeTab === "favorites" && <FavoritesContent />}
                 {activeTab === "history" && <HistoryContent />}
               </div>

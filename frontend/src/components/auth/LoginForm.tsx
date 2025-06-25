@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeftIcon } from "@radix-ui/react-icons";
+import { authAPI, tokenManager } from "@/services/api";
 
 type Role = "student" | "teacher" | "administrator";
 
@@ -33,36 +34,97 @@ export const LoginForm = ({ role, onBack }: LoginFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 基本验证
+    if (!username.trim() || !password.trim()) {
+      toast({
+        variant: "destructive",
+        title: "登录失败",
+        description: "请输入用户名和密码",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
-    await new Promise(resolve => setTimeout(resolve, 500));
-
     try {
-      localStorage.setItem("token", `fake-token-for-${role}`);
+      // 调用后端登录API
+      const response = await authAPI.login({
+        username: username.trim(),
+        password: password,
+        remember_me: true,
+        device_info: `Web Browser - ${role}`,
+      });
+
+      // 验证用户角色
+      const userRole = response.user_info.role;
+      if (role === "administrator" && userRole !== "admin") {
+        throw new Error("您没有管理员权限");
+      }
+      if (role === "teacher" && userRole !== "teacher" && userRole !== "admin") {
+        throw new Error("您没有教师权限");
+      }
+      if (role === "student" && userRole !== "student" && userRole !== "admin") {
+        throw new Error("您没有学生权限");
+      }
+
+      // 保存令牌和用户信息
+      tokenManager.saveTokens(response.access_token, response.refresh_token);
+      localStorage.setItem("user_info", JSON.stringify(response.user_info));
+
       toast({
         title: "登录成功",
-        description: "欢迎回来！",
+        description: `欢迎回来，${response.user_info.full_name}！`,
       });
-      
-      switch (role) {
+
+      // 根据用户实际角色跳转
+      switch (userRole) {
         case "student":
           navigate("/student/dashboard");
           break;
         case "teacher":
           // navigate("/teacher/dashboard"); // 教师仪表盘路由
+          toast({
+            title: "提示",
+            description: "教师功能正在开发中，暂时跳转到学生界面",
+          });
+          navigate("/student/dashboard");
           break;
-        case "administrator":
+        case "admin":
           // navigate("/admin/dashboard"); // 管理员仪表盘路由
+          toast({
+            title: "提示",
+            description: "管理员功能正在开发中，暂时跳转到学生界面",
+          });
+          navigate("/student/dashboard");
           break;
         default:
           navigate("/");
       }
 
-    } catch (error) {
+    } catch (error: any) {
+      console.error("登录失败:", error);
+
+      let errorMessage = "登录失败，请稍后重试";
+
+      if (error.message) {
+        if (error.message.includes("用户名或密码错误")) {
+          errorMessage = "用户名或密码错误";
+        } else if (error.message.includes("权限")) {
+          errorMessage = error.message;
+        } else if (error.message.includes("账户已被禁用")) {
+          errorMessage = "账户已被禁用，请联系管理员";
+        } else if (error.message.includes("Failed to fetch")) {
+          errorMessage = "无法连接到服务器，请检查网络连接";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
       toast({
         variant: "destructive",
         title: "登录失败",
-        description: "请检查用户名和密码是否正确",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);

@@ -4,6 +4,7 @@ import { AIProvider } from "./contexts/AIContext";
 import { Home } from "./pages/public/Home";
 import { Dashboard } from "./pages/student/Dashboard";
 import { Courses } from "./pages/student/Courses";
+import { CourseDetail } from "./pages/student/CourseDetail";
 import { Exercises } from "./pages/student/Exercises";
 import { ExercisePractice } from "./pages/student/ExercisePractice";
 import { ExerciseResult } from "./pages/student/ExerciseResult";
@@ -20,6 +21,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/student/dashboard" element={<Dashboard />} />
           <Route path="/student/courses" element={<Courses />} />
+          <Route path="/student/courses/:courseId" element={<CourseDetail />} />
           <Route path="/student/exercises" element={<Exercises />} />
           <Route path="/student/exercises/practice/:exerciseId" element={<ExercisePractice />} />
           <Route path="/student/exercises/result/:exerciseId" element={<ExerciseResult />} />

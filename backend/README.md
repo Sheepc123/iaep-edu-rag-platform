@@ -17,13 +17,14 @@ cd backend
 pip install -r requirements.txt
 ```
 
-### 配置环境
+### 初始化数据库
 ```bash
-# 复制环境配置文件
-copy .env.example .env
+# 方法1: 使用初始化脚本（推荐）
+python init_database.py
 
-# 编辑配置文件 (Windows)
-notepad .env
+# 方法2: 使用数据库管理工具
+python db.py init
+python db.py seed
 ```
 
 ### 启动服务
@@ -34,6 +35,12 @@ python run.py
 # 方式2: 直接使用uvicorn
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
+
+### 测试账号
+初始化数据库后，可以使用以下测试账号：
+- **管理员**: admin / admin123456
+- **教师**: teacher123 / 123456
+- **学生**: student123 / 123456
 
 ### 访问服务
 - API文档: http://127.0.0.1:8000/docs
@@ -51,7 +58,7 @@ backend/
 │   │       └── api.py    # 路由汇总
 │   ├── core/             # 核心配置
 │   │   ├── config.py     # 应用配置
-│   │   ├── database.py   # 数据库配置
+│   │   ├── database.py   # 数据库配置（兼容性）
 │   │   └── security.py   # 安全认证
 │   ├── models/           # 数据模型
 │   │   ├── user.py       # 用户模型
@@ -61,11 +68,20 @@ backend/
 │   ├── schemas/          # 数据验证模式
 │   ├── services/         # 业务逻辑服务
 │   └── main.py          # 应用入口
+├── database/            # 数据库管理模块 🆕
+│   ├── connection.py    # 数据库连接管理
+│   ├── migrations.py    # 迁移管理
+│   ├── seeds.py         # 种子数据
+│   ├── manager.py       # 管理工具
+│   ├── data/           # 数据库文件存储
+│   └── migrations/     # 迁移文件
 ├── tests/               # 测试文件
 ├── uploads/            # 文件上传目录
 ├── logs/               # 日志目录
 ├── requirements.txt    # 依赖列表
 ├── run.py             # 启动脚本
+├── init_database.py   # 数据库初始化脚本 🆕
+├── db.py              # 数据库管理便捷脚本 🆕
 └── .env.example       # 环境配置模板
 ```
 
@@ -116,13 +132,49 @@ backend/
 - **ASGI服务器**: Uvicorn
 - **日志**: Loguru
 
-## 📊 数据库设计
+## 📊 数据库管理
+
+### 数据库结构
+数据库文件统一存储在 `database/data/` 目录中，便于管理和备份。
+
+### 数据库管理命令
+```bash
+# 查看所有可用命令
+python db.py --help
+
+# 初始化数据库
+python db.py init
+
+# 填充种子数据
+python db.py seed
+
+# 查看数据库状态
+python db.py status
+
+# 创建迁移文件
+python db.py create-migration add_new_feature --description "添加新功能"
+
+# 应用迁移
+python db.py migrate
+
+# 备份数据库
+python db.py backup --path backup_20241224.db
+
+# 恢复数据库
+python db.py restore backup_20241224.db
+
+# 重置数据库（谨慎使用）
+python db.py reset
+```
 
 ### 核心表结构
 - `users` - 用户基础信息
 - `student_profiles` - 学生档案
 - `teacher_profiles` - 教师档案
 - `courses` - 课程信息
+- `lessons` - 课时内容
+- `course_enrollments` - 课程注册
+- `lesson_progress` - 学习进度
 - `exercises` - 练习集
 - `questions` - 题目
 - `chat_rooms` - 聊天室

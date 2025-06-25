@@ -4,8 +4,11 @@
 
 from .auth_service import AuthService
 from .student_service import StudentService
+from .course_service import CourseService, LessonService
 
 __all__ = [
     "AuthService",
-    "StudentService"
+    "StudentService",
+    "CourseService",
+    "LessonService"
 ]
