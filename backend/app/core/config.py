@@ -28,21 +28,24 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # CORS配置
-    ALLOWED_ORIGINS: list = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173"
-    ]
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173"
+
+    @property
+    def allowed_origins_list(self) -> list:
+        """将CORS配置字符串转换为列表"""
+        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
     
     # 文件上传配置
     UPLOAD_DIR: str = "uploads"
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
-    ALLOWED_FILE_TYPES: list = [".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx"]
     
-    # AI配置 (预留)
-    AI_API_KEY: Optional[str] = None
-    AI_MODEL: str = "gpt-3.5-turbo"
+    # AI配置
+    DEEPSEEK_API_KEY: Optional[str] = None
+    DEEPSEEK_BASE_URL: str = "https://api.deepseek.com/v1"
+    DEEPSEEK_MODEL: str = "deepseek-chat"
+    AI_MAX_TOKENS: int = 1000
+    AI_TEMPERATURE: float = 0.7
+    AI_TIMEOUT: int = 30
     
     # 日志配置
     LOG_LEVEL: str = "INFO"

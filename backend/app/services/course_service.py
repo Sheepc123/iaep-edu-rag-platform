@@ -122,7 +122,7 @@ class CourseService:
         
         return True
     
-    def get_courses(self, query: CourseListQuery) -> Tuple[List[Course], int]:
+    def get_courses(self, query: CourseListQuery, user_id: Optional[int] = None) -> Tuple[List[Course], int]:
         """获取课程列表"""
         # 构建查询
         db_query = self.db.query(Course).filter(Course.is_active == True)
@@ -168,7 +168,31 @@ class CourseService:
         
         # 应用分页
         courses = db_query.offset(query.skip).limit(query.limit).all()
-        
+
+        # 如果提供了用户ID，添加注册状态信息
+        if user_id:
+            # 获取用户的所有注册记录
+            enrollments = self.db.query(CourseEnrollment).filter(
+                and_(
+                    CourseEnrollment.student_id == user_id,
+                    CourseEnrollment.is_active == True
+                )
+            ).all()
+
+            # 创建课程ID到注册记录的映射
+            enrollment_map = {e.course_id: e for e in enrollments}
+
+            # 为每个课程添加注册状态
+            for course in courses:
+                enrollment = enrollment_map.get(course.id)
+                course.is_enrolled = enrollment is not None
+                course.enrollment_id = enrollment.id if enrollment else None
+        else:
+            # 未登录用户，所有课程都标记为未注册
+            for course in courses:
+                course.is_enrolled = False
+                course.enrollment_id = None
+
         return courses, total
     
     def enroll_course(self, course_id: int, student_id: int) -> CourseEnrollment:
@@ -230,7 +254,11 @@ class CourseService:
     
     def get_student_enrollments(self, student_id: int) -> List[CourseEnrollment]:
         """获取学生的课程注册列表"""
-        return self.db.query(CourseEnrollment).filter(
+        from sqlalchemy.orm import joinedload
+
+        return self.db.query(CourseEnrollment).options(
+            joinedload(CourseEnrollment.course)
+        ).filter(
             and_(
                 CourseEnrollment.student_id == student_id,
                 CourseEnrollment.is_active == True

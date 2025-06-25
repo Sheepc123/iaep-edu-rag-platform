@@ -17,6 +17,28 @@ from .course import (
     DifficultyLevel, LessonType
 )
 
+from .exercise import (
+    # 枚举类型
+    QuestionType, ExerciseCategory, ExerciseStatus,
+    # 题目相关
+    QuestionBase, QuestionCreate, QuestionUpdate, QuestionResponse,
+    # 练习相关
+    ExerciseBase, ExerciseCreate, ExerciseUpdate, ExerciseResponse, ExerciseDetailResponse,
+    # 答题相关
+    StudentAnswerBase, StudentAnswerCreate, StudentAnswerUpdate, StudentAnswerResponse,
+    # 练习尝试相关
+    ExerciseAttemptBase, ExerciseAttemptCreate, ExerciseAttemptUpdate,
+    ExerciseAttemptResponse, ExerciseAttemptDetailResponse,
+    # 提交相关
+    SubmitAnswerRequest, SubmitExerciseRequest, SubmitExerciseResponse,
+    # 错题本相关
+    WrongQuestionBase, WrongQuestionCreate, WrongQuestionResponse,
+    # 统计相关
+    ExerciseStatsResponse, DailyStatsResponse, ExerciseCategoryStatsResponse,
+    # 查询参数
+    ExerciseListQuery, QuestionListQuery
+)
+
 __all__ = [
     # 认证相关
     "UserRegister",
@@ -47,5 +69,48 @@ __all__ = [
     "CourseStatistics",
     "StudyPlanCreate",
     "DifficultyLevel",
-    "LessonType"
+    "LessonType",
+
+    # 练习系统相关
+    # 枚举类型
+    "QuestionType",
+    "ExerciseCategory",
+    "ExerciseStatus",
+    # 题目相关
+    "QuestionBase",
+    "QuestionCreate",
+    "QuestionUpdate",
+    "QuestionResponse",
+    # 练习相关
+    "ExerciseBase",
+    "ExerciseCreate",
+    "ExerciseUpdate",
+    "ExerciseResponse",
+    "ExerciseDetailResponse",
+    # 答题相关
+    "StudentAnswerBase",
+    "StudentAnswerCreate",
+    "StudentAnswerUpdate",
+    "StudentAnswerResponse",
+    # 练习尝试相关
+    "ExerciseAttemptBase",
+    "ExerciseAttemptCreate",
+    "ExerciseAttemptUpdate",
+    "ExerciseAttemptResponse",
+    "ExerciseAttemptDetailResponse",
+    # 提交相关
+    "SubmitAnswerRequest",
+    "SubmitExerciseRequest",
+    "SubmitExerciseResponse",
+    # 错题本相关
+    "WrongQuestionBase",
+    "WrongQuestionCreate",
+    "WrongQuestionResponse",
+    # 统计相关
+    "ExerciseStatsResponse",
+    "DailyStatsResponse",
+    "ExerciseCategoryStatsResponse",
+    # 查询参数
+    "ExerciseListQuery",
+    "QuestionListQuery"
 ]

@@ -18,7 +18,7 @@ from ....services.course_service import CourseService, LessonService
 from ....models.user import User
 from ...dependencies import (
     get_current_active_user, get_current_student, get_current_teacher,
-    get_pagination_params
+    get_pagination_params, get_optional_user
 )
 
 
@@ -68,6 +68,7 @@ async def get_courses(
     limit: int = Query(20, ge=1, le=100, description="限制数量"),
     sort_by: str = Query("created_at", description="排序字段"),
     sort_order: str = Query("desc", description="排序方向"),
+    current_user: Optional[User] = Depends(get_optional_user),
     db: Session = Depends(get_db)
 ) -> Any:
     """
@@ -100,7 +101,8 @@ async def get_courses(
         )
 
         course_service = CourseService(db)
-        courses, total = course_service.get_courses(query)
+        user_id = current_user.id if current_user else None
+        courses, total = course_service.get_courses(query, user_id)
 
         # 将Course模型转换为CourseResponse格式
         course_responses = []
@@ -122,7 +124,9 @@ async def get_courses(
                 "is_active": course.is_active,
                 "is_published": course.is_published,
                 "created_at": course.created_at,
-                "updated_at": course.updated_at
+                "updated_at": course.updated_at,
+                "is_enrolled": getattr(course, 'is_enrolled', False),
+                "enrollment_id": getattr(course, 'enrollment_id', None)
             })
 
         return {

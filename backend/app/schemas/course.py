@@ -77,7 +77,9 @@ class CourseResponse(BaseModel):
     is_published: bool = Field(..., description="是否发布")
     created_at: datetime = Field(..., description="创建时间")
     updated_at: Optional[datetime] = Field(None, description="更新时间")
-    
+    is_enrolled: Optional[bool] = Field(None, description="当前用户是否已注册")
+    enrollment_id: Optional[int] = Field(None, description="注册记录ID")
+
     class Config:
         from_attributes = True
 
@@ -161,7 +163,8 @@ class CourseEnrollResponse(BaseModel):
     is_completed: bool = Field(..., description="是否完成")
     enrolled_at: datetime = Field(..., description="注册时间")
     last_accessed: Optional[datetime] = Field(None, description="最后访问时间")
-    
+    course: Optional[CourseResponse] = Field(None, description="课程详情")
+
     class Config:
         from_attributes = True
 
