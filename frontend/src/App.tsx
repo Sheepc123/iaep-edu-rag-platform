@@ -29,6 +29,7 @@ import { TeacherGrades } from "./pages/teacher/Grades";
 import { TeacherProfile } from "./pages/teacher/Profile";
 import { TeacherAIAssistant } from "./pages/teacher/AIAssistant";
 import { TeacherChatRoom } from "./pages/teacher/ChatRoom";
+import { TeacherKnowledgeBase } from "./pages/teacher/KnowledgeBase";
 
 function App() {
   return (
@@ -60,6 +61,7 @@ function App() {
           <Route path="/teacher/exercises/create" element={<TeacherExerciseCreate />} />
           <Route path="/teacher/exercises/:exerciseId" element={<TeacherExerciseDetail />} />
           <Route path="/teacher/exercises/:exerciseId/edit" element={<TeacherExerciseEdit />} />
+          <Route path="/teacher/knowledge-base" element={<TeacherKnowledgeBase />} />
           <Route path="/teacher/students" element={<TeacherStudents />} />
           <Route path="/teacher/students/:studentId" element={<TeacherStudentDetail />} />
           <Route path="/teacher/grades" element={<TeacherGrades />} />

@@ -35,6 +35,7 @@ class User(Base):
     # 关联关系
     student_profile = relationship("StudentProfile", back_populates="user", uselist=False)
     teacher_profile = relationship("TeacherProfile", back_populates="user", uselist=False)
+    knowledge_docs = relationship("TeacherKnowledgeDoc", back_populates="teacher")
 
 
 class StudentProfile(Base):

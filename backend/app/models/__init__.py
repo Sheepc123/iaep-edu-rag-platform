@@ -13,6 +13,7 @@ from .chat import (
     ChatRoom, ChatMember, ChatMessage, UserContact,
     AIConversation, AIMessage, AIRecommendation, UserOnlineStatus
 )
+from .knowledge_base import TeacherKnowledgeDoc
 
 # 导出所有模型类
 __all__ = [
@@ -44,11 +45,14 @@ __all__ = [
     
     # 聊天和AI相关模型
     "ChatRoom",
-    "ChatMember", 
+    "ChatMember",
     "ChatMessage",
     "UserContact",
     "AIConversation",
     "AIMessage",
     "AIRecommendation",
     "UserOnlineStatus",
+
+    # 知识库相关模型
+    "TeacherKnowledgeDoc",
 ]

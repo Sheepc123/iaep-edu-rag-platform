@@ -9,7 +9,8 @@ import {
   User,
   PlusCircle,
   Bot,
-  MessageCircle
+  MessageCircle,
+  Database
 } from "lucide-react";
 import { ReactNode, useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -129,6 +130,7 @@ const Sidebar = () => {
     { icon: <LayoutDashboard size={20} />, label: "教学中心", path: "/teacher/dashboard" },
     { icon: <BookOpen size={20} />, label: "课程管理", path: "/teacher/courses" },
     { icon: <ClipboardList size={20} />, label: "练习管理", path: "/teacher/exercises" },
+    { icon: <Database size={20} />, label: "本地知识库", path: "/teacher/knowledge-base" },
     { icon: <Users size={20} />, label: "学生管理", path: "/teacher/students" },
     { icon: <BarChart3 size={20} />, label: "成绩分析", path: "/teacher/grades" },
     { icon: <MessageCircle size={20} />, label: "聊天室", path: "/teacher/chatroom" },

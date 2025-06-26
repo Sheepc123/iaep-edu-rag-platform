@@ -24,7 +24,7 @@ class DocumentProcessor:
     """文档处理器"""
     
     SUPPORTED_EXTENSIONS = {'.pdf', '.docx', '.doc'}
-    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
     
     def __init__(self):
         self.temp_dir = tempfile.gettempdir()
@@ -51,20 +51,39 @@ class DocumentProcessor:
     async def extract_text(self, file: UploadFile) -> Dict[str, Any]:
         """从文档中提取文本内容"""
         self.validate_file(file)
-        
+
         # 保存临时文件
         temp_file_path = None
         try:
-            # 创建临时文件
-            temp_file_path = os.path.join(
-                self.temp_dir, 
-                f"temp_{file.filename}"
-            )
-            
+            # 重置文件指针到开始位置
+            await file.seek(0)
+
+            # 创建临时文件，使用UUID避免中文路径问题
+            import uuid
+            file_extension = Path(file.filename).suffix.lower()
+            temp_filename = f"temp_{uuid.uuid4().hex}{file_extension}"
+            temp_file_path = os.path.join(self.temp_dir, temp_filename)
+
+            # 读取文件内容
+            content = await file.read()
+            logger.info(f"读取文件内容，大小: {len(content)} bytes")
+
+            if len(content) == 0:
+                raise ValueError("上传的文件内容为空")
+
             # 保存上传的文件
             with open(temp_file_path, "wb") as temp_file:
-                content = await file.read()
                 temp_file.write(content)
+
+            # 验证文件是否正确保存
+            if not os.path.exists(temp_file_path):
+                raise FileNotFoundError("临时文件保存失败")
+
+            saved_size = os.path.getsize(temp_file_path)
+            logger.info(f"临时文件保存成功: {temp_file_path}, 大小: {saved_size} bytes")
+
+            if saved_size == 0:
+                raise ValueError("临时文件保存后为空")
             
             # 根据文件类型提取文本
             file_extension = Path(file.filename).suffix.lower()
@@ -104,15 +123,28 @@ class DocumentProcessor:
     def _extract_pdf_text(self, file_path: str) -> str:
         """提取PDF文本内容"""
         text_content = ""
-        
+
         try:
+            # 检查文件是否存在
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"临时文件不存在: {file_path}")
+
+            # 检查文件大小
+            file_size = os.path.getsize(file_path)
+            if file_size == 0:
+                raise ValueError("文件为空")
+
+            logger.info(f"开始解析PDF文档: {file_path}, 大小: {file_size} bytes")
+
             # 尝试使用PyMuPDF (fitz)
             doc = fitz.open(file_path)
             for page_num in range(len(doc)):
                 page = doc.load_page(page_num)
                 text_content += page.get_text()
             doc.close()
-            
+
+            logger.info(f"PDF文档解析成功，提取文本长度: {len(text_content)} 字符")
+
         except Exception as e:
             logger.warning(f"PyMuPDF提取失败，尝试PyPDF2: {e}")
             try:
@@ -121,40 +153,78 @@ class DocumentProcessor:
                     pdf_reader = PyPDF2.PdfReader(file)
                     for page in pdf_reader.pages:
                         text_content += page.extract_text()
+
+                logger.info(f"PyPDF2解析成功，提取文本长度: {len(text_content)} 字符")
+
             except Exception as e2:
                 logger.error(f"PDF文本提取失败: {e2}")
                 raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="PDF文件解析失败"
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="PDF文件解析失败，请检查文件是否为有效的PDF格式"
                 )
-        
-        return text_content.strip()
+
+        result = text_content.strip()
+        if not result:
+            logger.warning("PDF文档解析成功但未提取到文本内容")
+            return "PDF文档内容为空或无法提取文本"
+
+        return result
     
     def _extract_docx_text(self, file_path: str) -> str:
         """提取Word文档文本内容"""
         try:
+            # 检查文件是否存在
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"临时文件不存在: {file_path}")
+
+            # 检查文件大小
+            file_size = os.path.getsize(file_path)
+            if file_size == 0:
+                raise ValueError("文件为空")
+
+            logger.info(f"开始解析Word文档: {file_path}, 大小: {file_size} bytes")
+
             doc = Document(file_path)
             text_content = ""
-            
+
             # 提取段落文本
             for paragraph in doc.paragraphs:
-                text_content += paragraph.text + "\n"
-            
+                if paragraph.text.strip():
+                    text_content += paragraph.text + "\n"
+
             # 提取表格文本
             for table in doc.tables:
                 for row in table.rows:
                     for cell in row.cells:
-                        text_content += cell.text + " "
+                        if cell.text.strip():
+                            text_content += cell.text + " "
                     text_content += "\n"
-            
-            return text_content.strip()
-            
+
+            result = text_content.strip()
+            logger.info(f"Word文档解析成功，提取文本长度: {len(result)} 字符")
+
+            if not result:
+                logger.warning("Word文档解析成功但未提取到文本内容")
+                return "文档内容为空或无法提取文本"
+
+            return result
+
         except Exception as e:
             logger.error(f"Word文档解析失败: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Word文档解析失败"
-            )
+            logger.error(f"文件路径: {file_path}")
+            logger.error(f"文件是否存在: {os.path.exists(file_path) if file_path else 'N/A'}")
+
+            # 返回更友好的错误信息
+            if "Package not found" in str(e):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Word文档格式错误或文件损坏，请检查文件是否为有效的.docx格式"
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Word文档解析失败: {str(e)}"
+                )
     
     def get_document_summary(self, text_content: str) -> Dict[str, Any]:
         """获取文档摘要信息"""

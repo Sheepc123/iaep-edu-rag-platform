@@ -28,7 +28,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
   onFileSelect,
   onUploadComplete,
   onUploadError,
-  maxSize = 10 * 1024 * 1024, // 10MB
+  maxSize = 100 * 1024 * 1024, // 100MB
   acceptedTypes = ['.pdf', '.docx', '.doc'],
   disabled = false,
   className = ''

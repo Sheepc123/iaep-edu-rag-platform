@@ -37,7 +37,8 @@ class Settings(BaseSettings):
     
     # 文件上传配置
     UPLOAD_DIR: str = "uploads"
-    MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
+    MAX_FILE_SIZE: int = 100 * 1024 * 1024  # 100MB
+    ALLOWED_FILE_TYPES: list = [".pdf", ".docx", ".doc"]
     
     # AI配置
     DEEPSEEK_API_KEY: Optional[str] = None
