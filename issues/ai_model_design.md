@@ -1,87 +1,200 @@
-# DeepSeek大模型应用设计方案
+# 智能教育平台本地知识库集成方案
 
-## 1. 模型架构
+## 项目现状分析
 
-### 1.1 基础模型选择
-- DeepSeek-7B/67B作为基础模型
-  * 开源可商用
-  * 支持中英双语
-  * 具备强大的代码理解和生成能力
-  * 上下文窗口长度支持8K-32K
+### 已有技术基础
+您的智能教育平台已具备以下核心能力：
+- ✅ **文档处理**: 支持PDF/Word文档解析和文本提取
+- ✅ **AI服务**: 集成DeepSeek API，支持智能对话和内容生成
+- ✅ **课程生成**: 基于文档内容自动生成课程结构
+- ✅ **用户系统**: 完善的教师/学生角色管理
+- ✅ **前端组件**: 文档上传、AI交互界面完备
 
-### 1.2 模型部署方式
-- 本地部署
-  * 使用量化技术降低资源需求
-  * 支持CPU/GPU推理
-  * 分布式部署支持
-  * 动态负载均衡
+### 技术架构优势
+- **后端**: FastAPI + SQLAlchemy + SQLite，架构清晰，易于扩展
+- **前端**: React + TypeScript，组件化设计，用户体验良好
+- **AI集成**: 已有完整的AI服务框架，支持多种AI功能
 
-### 1.3 知识库构建
-- 向量数据库
-  * 使用FAISS存储文档向量
-  * 支持高效相似度检索
-  * 增量更新机制
-  * 索引优化策略
+## 1. 本地知识库架构设计
 
-- 知识处理
-  * 文档解析和预处理
-  * 文本分块策略
-  * 向量化处理
-  * 知识关联建立
+### 1.1 整体架构
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   文档上传层    │    │   知识处理层    │    │   检索服务层    │
+│                 │    │                 │    │                 │
+│ • PDF/Word解析  │───▶│ • 文本分块      │───▶│ • 向量检索      │
+│ • 格式验证      │    │ • 向量化处理    │    │ • 语义搜索      │
+│ • 文件管理      │    │ • 知识提取      │    │ • 结果排序      │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   存储管理层    │    │   向量数据库    │    │   RAG生成层     │
+│                 │    │                 │    │                 │
+│ • 文档存储      │    │ • FAISS/Chroma  │    │ • 上下文构建    │
+│ • 元数据管理    │    │ • 向量索引      │    │ • 提示词工程    │
+│ • 版本控制      │    │ • 相似度计算    │    │ • DeepSeek生成  │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
 
-## 2. 核心功能设计
+### 1.2 核心组件选型
 
-### 2.1 教学内容生成
-- 课程内容生成
-  * 基于知识库生成教学大纲
-  * 自动生成教学内容
-  * 生成教学案例
-  * 生成练习题和答案
+#### 向量数据库选择
+**推荐方案**: **Chroma** (轻量级，易集成)
+- 优势：
+  * 轻量级，适合中小型项目
+  * Python原生支持，集成简单
+  * 支持本地部署，无需额外服务
+  * 内置文档管理和元数据支持
 
-- 内容优化
-  * 结构化处理
-  * 难度适配
-  * 知识点关联
-  * 内容查重
+**备选方案**: **FAISS** (高性能)
+- 优势：
+  * Facebook开源，性能优异
+  * 支持大规模向量检索
+  * 多种索引算法可选
+  * 内存占用可控
 
-### 2.2 智能问答系统
-- 问答处理
-  * 问题理解和分类
-  * 上下文管理
-  * 多轮对话支持
-  * 答案生成和优化
+#### 文本嵌入模型
+**推荐方案**: **BGE-M3** (中文优化)
+- 优势：
+  * 专为中文优化
+  * 支持多语言
+  * 向量维度适中(1024维)
+  * 检索效果优秀
 
-- 知识检索
-  * 相关知识检索
-  * 实时响应
-  * 准确性验证
-  * 补充解释生成
+**备选方案**: **text2vec-base-chinese**
+- 优势：
+  * 轻量级模型
+  * 中文支持良好
+  * 部署简单
 
-### 2.3 学习分析
-- 数据分析
-  * 学习行为分析
-  * 知识掌握评估
-  * 学习障碍识别
-  * 学习模式分析
+## 2. 技术实现方案
 
-- 个性化推荐
-  * 学习路径规划
-  * 资源推荐
-  * 练习推荐
-  * 学习方法建议
+### 2.1 知识库数据模型设计
 
-### 2.4 教学评估
-- 作业评估
-  * 自动批改
-  * 错误分析
-  * 改进建议
-  * 成绩评定
+#### 数据库表结构扩展
+```sql
+-- 知识库文档表
+CREATE TABLE knowledge_documents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title VARCHAR(255) NOT NULL,
+    filename VARCHAR(255) NOT NULL,
+    file_path VARCHAR(500) NOT NULL,
+    file_type VARCHAR(10) NOT NULL,
+    file_size INTEGER NOT NULL,
+    upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    teacher_id INTEGER NOT NULL,
+    category VARCHAR(100),
+    tags TEXT,
+    status VARCHAR(20) DEFAULT 'processing',
+    FOREIGN KEY (teacher_id) REFERENCES users(id)
+);
 
-- 学习效果评估
-  * 知识点掌握度分析
-  * 能力水平评估
-  * 学习进度跟踪
-  * 学习效果预测
+-- 知识块表
+CREATE TABLE knowledge_chunks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    document_id INTEGER NOT NULL,
+    chunk_text TEXT NOT NULL,
+    chunk_index INTEGER NOT NULL,
+    chunk_size INTEGER NOT NULL,
+    vector_id VARCHAR(100),
+    metadata TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (document_id) REFERENCES knowledge_documents(id)
+);
+
+-- 知识库配置表
+CREATE TABLE knowledge_base_config (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    teacher_id INTEGER NOT NULL,
+    embedding_model VARCHAR(100) DEFAULT 'bge-m3',
+    chunk_size INTEGER DEFAULT 500,
+    chunk_overlap INTEGER DEFAULT 50,
+    vector_db_path VARCHAR(500),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (teacher_id) REFERENCES users(id)
+);
+```
+
+### 2.2 核心服务实现
+
+#### 知识库管理服务 (KnowledgeBaseService)
+```python
+class KnowledgeBaseService:
+    """知识库管理服务"""
+
+    def __init__(self, db: Session, teacher_id: int):
+        self.db = db
+        self.teacher_id = teacher_id
+        self.vector_db = self._init_vector_db()
+        self.embedding_model = self._init_embedding_model()
+
+    async def add_document(self, file: UploadFile) -> KnowledgeDocument:
+        """添加文档到知识库"""
+
+    async def process_document(self, document_id: int) -> bool:
+        """处理文档，生成向量"""
+
+    async def search_knowledge(self, query: str, top_k: int = 5) -> List[KnowledgeChunk]:
+        """检索相关知识"""
+
+    async def delete_document(self, document_id: int) -> bool:
+        """删除文档及其向量"""
+```
+
+#### 文档处理增强服务
+```python
+class EnhancedDocumentProcessor(DocumentProcessor):
+    """增强的文档处理器"""
+
+    def __init__(self):
+        super().__init__()
+        self.text_splitter = self._init_text_splitter()
+
+    def split_text_into_chunks(self, text: str, chunk_size: int = 500,
+                              overlap: int = 50) -> List[TextChunk]:
+        """智能文本分块"""
+
+    def extract_metadata(self, text: str) -> Dict[str, Any]:
+        """提取文档元数据"""
+
+    def clean_text(self, text: str) -> str:
+        """文本清洗和预处理"""
+```
+
+### 2.3 RAG系统实现
+
+#### RAG服务集成
+```python
+class RAGService:
+    """检索增强生成服务"""
+
+    def __init__(self, knowledge_base: KnowledgeBaseService,
+                 ai_service: AIService):
+        self.kb = knowledge_base
+        self.ai = ai_service
+
+    async def generate_with_context(self, query: str,
+                                  context_limit: int = 3) -> str:
+        """基于知识库上下文生成回答"""
+        # 1. 检索相关知识
+        relevant_chunks = await self.kb.search_knowledge(query, top_k=context_limit)
+
+        # 2. 构建上下文
+        context = self._build_context(relevant_chunks)
+
+        # 3. 生成增强提示词
+        enhanced_prompt = self._build_rag_prompt(query, context)
+
+        # 4. 调用AI生成
+        return await self.ai.generate_response(enhanced_prompt)
+
+    def _build_context(self, chunks: List[KnowledgeChunk]) -> str:
+        """构建上下文信息"""
+
+    def _build_rag_prompt(self, query: str, context: str) -> str:
+        """构建RAG提示词"""
+```
 
 ## 3. 技术实现
 

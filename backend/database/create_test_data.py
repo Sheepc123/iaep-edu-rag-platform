@@ -42,6 +42,16 @@ def create_rich_courses():
         return courses
 
 
+def create_sample_exercises():
+    """创建示例练习数据"""
+    with SeedManager() as seed_manager:
+        # 确保有教师用户
+        teacher = seed_manager.create_test_teacher()
+        # 创建练习数据
+        exercises = seed_manager.create_sample_exercises(teacher)
+        return exercises
+
+
 def main():
     """主函数"""
     print("=" * 50)
@@ -98,6 +108,18 @@ def main():
             print("- Web开发 (前端、后端、全栈项目)")
             print("- 人工智能 (机器学习、深度学习、计算机视觉等)")
             print("- 数据科学 (数据分析、大数据、数据可视化)")
+
+        elif command == "exercises":
+            print("📝 创建示例练习数据...")
+            create_sample_exercises()
+            print("✅ 完成！创建了示例练习数据")
+            print("\n📋 包含以下练习:")
+            print("- 高等数学基础练习 (函数、极限、导数)")
+            print("- 线性代数矩阵运算")
+            print("- 概率论基础概念")
+            print("- 计算机基础知识")
+            print("- 英语语法练习")
+            print("\n💡 现在学生可以在练习系统中看到这些练习了！")
 
         elif command == "help" or command == "-h" or command == "--help":
             show_help()

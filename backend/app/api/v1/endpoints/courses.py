@@ -14,7 +14,8 @@ from ....schemas.course import (
     LessonProgressUpdate, LessonProgressResponse,
     CourseRatingCreate, CourseStatistics
 )
-from ....services.course_service import CourseService, LessonService
+from ....services.course_service import CourseService
+from ....services.course_service import LessonService
 from ....models.user import User
 from ...dependencies import (
     get_current_active_user, get_current_student, get_current_teacher,
@@ -571,6 +572,192 @@ async def get_course_statistics(
         return statistics
 
     except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取统计信息失败"
+        )
+
+
+# ==================== 教师端API端点 ====================
+
+@router.get("/teacher/courses", response_model=List[CourseResponse], summary="获取教师课程列表")
+async def get_teacher_courses(
+    skip: int = Query(0, ge=0, description="跳过的记录数"),
+    limit: int = Query(100, ge=1, le=100, description="返回的记录数"),
+    search: Optional[str] = Query(None, description="搜索关键词"),
+    category: Optional[str] = Query(None, description="课程分类"),
+    is_published: Optional[bool] = Query(None, description="发布状态"),
+    current_user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db)
+) -> Any:
+    """获取教师的课程列表"""
+    try:
+        course_service = CourseService(db)
+        courses, total = course_service.get_teacher_courses(
+            teacher_id=current_user.id,
+            skip=skip,
+            limit=limit,
+            search=search,
+            category=category,
+            is_published=is_published
+        )
+
+        return courses
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"获取教师课程列表失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取课程列表失败"
+        )
+
+
+@router.post("/teacher/courses", response_model=CourseResponse, summary="创建课程")
+async def create_teacher_course(
+    course_data: CourseCreate,
+    current_user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db)
+) -> Any:
+    """创建新课程（教师功能）"""
+    try:
+        course_service = CourseService(db)
+        course = course_service.create_course(course_data, current_user.id)
+
+        logger.info(f"教师 {current_user.id} 创建了课程: {course.title}")
+        return course
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"创建课程失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="创建课程失败"
+        )
+
+
+@router.get("/teacher/courses/{course_id}", response_model=CourseResponse, summary="获取教师课程详情")
+async def get_teacher_course_detail(
+    course_id: int,
+    current_user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db)
+) -> Any:
+    """获取教师课程详情"""
+    try:
+        course_service = CourseService(db)
+        course = course_service.get_teacher_course_detail(course_id, current_user.id)
+
+        return course
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"获取教师课程详情失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取课程详情失败"
+        )
+
+
+@router.put("/teacher/courses/{course_id}", response_model=CourseResponse, summary="更新课程")
+async def update_teacher_course(
+    course_id: int,
+    course_data: CourseUpdate,
+    current_user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db)
+) -> Any:
+    """更新课程信息（教师功能）"""
+    try:
+        course_service = CourseService(db)
+        course = course_service.update_teacher_course(course_id, current_user.id, course_data)
+
+        logger.info(f"教师 {current_user.id} 更新了课程 {course_id}")
+        return course
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"更新课程失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="更新课程失败"
+        )
+
+
+@router.delete("/teacher/courses/{course_id}", response_model=dict, summary="删除课程")
+async def delete_teacher_course(
+    course_id: int,
+    current_user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db)
+) -> Any:
+    """删除课程（教师功能）"""
+    try:
+        course_service = CourseService(db)
+        success = course_service.delete_teacher_course(course_id, current_user.id)
+
+        if success:
+            logger.info(f"教师 {current_user.id} 删除了课程 {course_id}")
+            return {"message": "课程删除成功"}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="删除课程失败"
+            )
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"删除课程失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="删除课程失败"
+        )
+
+
+@router.post("/teacher/courses/{course_id}/toggle-publish", response_model=CourseResponse, summary="切换课程发布状态")
+async def toggle_course_publish(
+    course_id: int,
+    current_user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db)
+) -> Any:
+    """切换课程发布状态（教师功能）"""
+    try:
+        course_service = CourseService(db)
+        course = course_service.toggle_course_publish(course_id, current_user.id)
+
+        status_text = "发布" if course.is_published else "取消发布"
+        logger.info(f"教师 {current_user.id} {status_text}了课程 {course_id}")
+
+        return course
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"切换课程发布状态失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="操作失败"
+        )
+
+
+@router.get("/teacher/statistics", response_model=dict, summary="获取教师课程统计")
+async def get_teacher_course_statistics(
+    current_user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db)
+) -> Any:
+    """获取教师课程统计信息"""
+    try:
+        course_service = CourseService(db)
+        statistics = course_service.get_teacher_course_statistics(current_user.id)
+
+        return statistics
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"获取教师课程统计失败: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取统计信息失败"

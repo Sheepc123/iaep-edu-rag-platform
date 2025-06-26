@@ -3,7 +3,7 @@ API v1 路由汇总
 """
 from fastapi import APIRouter
 
-from .endpoints import auth, users, courses, exercises, chat, ai
+from .endpoints import auth, users, courses, exercises, chat, ai, grade_analysis, ai_course_generation
 
 # 创建API路由器
 api_router = APIRouter()
@@ -43,4 +43,16 @@ api_router.include_router(
     ai.router,
     prefix="/ai",
     tags=["AI助手"]
+)
+
+api_router.include_router(
+    grade_analysis.router,
+    prefix="/grade-analysis",
+    tags=["成绩分析"]
+)
+
+api_router.include_router(
+    ai_course_generation.router,
+    prefix="/ai-course",
+    tags=["AI课程生成"]
 )

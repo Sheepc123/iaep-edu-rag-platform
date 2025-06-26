@@ -1,5 +1,7 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { exerciseAPI } from "@/services/api";
 import {
   CheckCircle,
   XCircle,
@@ -42,52 +44,114 @@ interface QuestionResult {
   earnedPoints: number;
 }
 
-// 模拟结果数据
-const mockResult: ExerciseResult = {
-  exerciseId: 1,
-  title: "函数与极限 - 基础练习",
-  subject: "高等数学",
-  totalQuestions: 10,
-  correctAnswers: 7,
-  score: 85,
-  timeSpent: 1800, // 30分钟
-  timeLimit: 3600, // 60分钟
-  difficulty: "中级",
-  questionResults: [
-    {
-      questionId: 1,
-      title: "函数极限的定义",
-      userAnswer: "B",
-      correctAnswer: "B",
-      isCorrect: true,
-      points: 10,
-      earnedPoints: 10
-    },
-    {
-      questionId: 2,
-      title: "极限计算",
-      userAnswer: "1",
-      correctAnswer: "1",
-      isCorrect: true,
-      points: 8,
-      earnedPoints: 8
-    },
-    {
-      questionId: 3,
-      title: "连续性证明",
-      userAnswer: "需要证明三个条件",
-      correctAnswer: "需要证明：1) f(2)存在；2) lim(x→2) f(x)存在；3) lim(x→2) f(x) = f(2)",
-      isCorrect: false,
-      points: 15,
-      earnedPoints: 0
-    }
-  ]
-};
+
 
 export const ExerciseResult = () => {
   const { exerciseId } = useParams();
   const navigate = useNavigate();
-  const result = mockResult; // 实际应该根据exerciseId获取结果
+  const [searchParams] = useSearchParams();
+  const attemptId = searchParams.get('attemptId');
+
+  const [result, setResult] = useState<ExerciseResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // 获取练习结果数据
+  useEffect(() => {
+    const fetchResult = async () => {
+      if (!attemptId) {
+        setError("缺少练习尝试ID");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const attemptData = await exerciseAPI.getExerciseAttempt(parseInt(attemptId));
+
+        // 转换数据格式
+        const formattedResult: ExerciseResult = {
+          exerciseId: attemptData.exercise_id,
+          title: attemptData.exercise.title,
+          subject: attemptData.exercise.subject,
+          totalQuestions: attemptData.total_questions,
+          correctAnswers: attemptData.correct_answers,
+          score: Math.round(attemptData.accuracy_rate),
+          timeSpent: attemptData.time_spent,
+          timeLimit: (attemptData.exercise.time_limit || 60) * 60, // 转换为秒
+          difficulty: attemptData.exercise.difficulty,
+          questionResults: attemptData.answers.map(answer => ({
+            questionId: answer.question_id,
+            title: answer.question.title || `题目 ${answer.question_id}`,
+            userAnswer: answer.answer,
+            correctAnswer: answer.question.correct_answer,
+            isCorrect: answer.is_correct,
+            points: answer.question.points,
+            earnedPoints: answer.points_earned
+          }))
+        };
+
+        setResult(formattedResult);
+      } catch (err: any) {
+        console.error("获取练习结果失败:", err);
+        setError(err.message || "获取练习结果失败");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResult();
+  }, [attemptId]);
+
+  // 加载状态
+  if (loading) {
+    return (
+      <StudentLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">正在加载练习结果...</p>
+          </div>
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  // 错误状态
+  if (error) {
+    return (
+      <StudentLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">加载失败</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={() => navigate('/student/exercises')}>
+              返回练习列表
+            </Button>
+          </div>
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  // 结果数据不存在
+  if (!result) {
+    return (
+      <StudentLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">结果不存在</h2>
+            <p className="text-gray-600 mb-4">未找到练习结果</p>
+            <Button onClick={() => navigate('/student/exercises')}>
+              返回练习列表
+            </Button>
+          </div>
+        </div>
+      </StudentLayout>
+    );
+  }
 
   const accuracy = Math.round((result.correctAnswers / result.totalQuestions) * 100);
   const timeUsedPercentage = (result.timeSpent / result.timeLimit) * 100;

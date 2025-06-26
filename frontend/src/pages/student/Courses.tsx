@@ -18,7 +18,9 @@ import {
   ChevronLeft,
   Loader2,
   Heart,
-  Eye
+  Eye,
+  CheckCircle,
+  Plus
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -426,6 +428,8 @@ interface CourseCardProps {
 
 const CourseCard = ({ course }: CourseCardProps) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isEnrolling, setIsEnrolling] = useState(false);
 
   const difficultyLabels = {
     easy: "简单",
@@ -441,6 +445,38 @@ const CourseCard = ({ course }: CourseCardProps) => {
 
   const handleViewCourse = () => {
     navigate(`/student/courses/${course.id}`);
+  };
+
+  const handleEnrollCourse = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (course.is_enrolled) {
+      // 如果已注册，直接跳转到课程页面
+      handleViewCourse();
+      return;
+    }
+
+    try {
+      setIsEnrolling(true);
+      await courseAPI.enrollCourse(course.id);
+
+      toast({
+        title: "注册成功",
+        description: `您已成功注册课程：${course.title}`,
+      });
+
+      // 刷新页面数据
+      window.location.reload();
+    } catch (error) {
+      console.error('注册课程失败:', error);
+      toast({
+        title: "注册失败",
+        description: "注册课程时发生错误，请稍后重试",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEnrolling(false);
+    }
   };
 
   return (
@@ -502,13 +538,41 @@ const CourseCard = ({ course }: CourseCardProps) => {
           </div>
 
           <div className="flex space-x-2 pt-2">
-            <Button className="flex-1" size="sm" onClick={handleViewCourse}>
-              <Eye className="w-4 h-4 mr-2" />
-              查看课程
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleViewCourse}>
-              <Heart className="w-4 h-4" />
-            </Button>
+            {course.is_enrolled ? (
+              <>
+                <Button className="flex-1" size="sm" onClick={handleViewCourse}>
+                  <PlayCircle className="w-4 h-4 mr-2" />
+                  继续学习
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleViewCourse}>
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  className="flex-1"
+                  size="sm"
+                  onClick={handleEnrollCourse}
+                  disabled={isEnrolling}
+                >
+                  {isEnrolling ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      注册中...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-2" />
+                      注册课程
+                    </>
+                  )}
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleViewCourse}>
+                  <Eye className="w-4 h-4" />
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </CardContent>

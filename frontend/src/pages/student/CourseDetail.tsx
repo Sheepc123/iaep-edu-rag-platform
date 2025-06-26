@@ -17,7 +17,6 @@ import {
   Lock,
   FileText,
   Video,
-  Award,
   Calendar,
   Globe,
   MessageCircle,
@@ -325,7 +324,7 @@ export const CourseDetail = () => {
                     {course.description || "暂无课程描述"}
                   </p>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
                       <BookOpen className="w-8 h-8 text-blue-600 mx-auto mb-2" />
                       <div className="text-2xl font-bold text-blue-600">{course.total_lessons}</div>
@@ -337,11 +336,6 @@ export const CourseDetail = () => {
                         {course.duration ? `${Math.round(course.duration / 60)}小时` : "待定"}
                       </div>
                       <div className="text-sm text-gray-600">总时长</div>
-                    </div>
-                    <div className="text-center p-4 bg-purple-50 rounded-lg">
-                      <Award className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                      <div className="text-2xl font-bold text-purple-600">证书</div>
-                      <div className="text-sm text-gray-600">完成获得</div>
                     </div>
                   </div>
                 </CardContent>

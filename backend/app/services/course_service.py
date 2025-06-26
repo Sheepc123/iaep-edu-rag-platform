@@ -51,6 +51,163 @@ class CourseService:
         self.db.refresh(course)
         
         return course
+
+    def get_teacher_courses(
+        self,
+        teacher_id: int,
+        skip: int = 0,
+        limit: int = 100,
+        search: Optional[str] = None,
+        category: Optional[str] = None,
+        is_published: Optional[bool] = None
+    ) -> Tuple[List[Course], int]:
+        """获取教师的课程列表"""
+        query = self.db.query(Course).filter(Course.instructor_id == teacher_id)
+
+        # 搜索过滤
+        if search:
+            query = query.filter(
+                or_(
+                    Course.title.contains(search),
+                    Course.description.contains(search)
+                )
+            )
+
+        # 分类过滤
+        if category:
+            query = query.filter(Course.category == category)
+
+        # 发布状态过滤
+        if is_published is not None:
+            query = query.filter(Course.is_published == is_published)
+
+        # 获取总数
+        total = query.count()
+
+        # 分页和排序
+        courses = query.order_by(desc(Course.updated_at)).offset(skip).limit(limit).all()
+
+        return courses, total
+
+    def get_teacher_course_detail(self, course_id: int, teacher_id: int) -> Course:
+        """获取教师课程详情"""
+        course = self.db.query(Course).filter(
+            and_(
+                Course.id == course_id,
+                Course.instructor_id == teacher_id
+            )
+        ).first()
+
+        if not course:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="课程不存在或您没有权限访问"
+            )
+
+        return course
+
+    def update_teacher_course(
+        self,
+        course_id: int,
+        teacher_id: int,
+        course_data: CourseUpdate
+    ) -> Course:
+        """更新教师课程"""
+        course = self.get_teacher_course_detail(course_id, teacher_id)
+
+        # 更新课程信息
+        for field, value in course_data.dict(exclude_unset=True).items():
+            if field == "difficulty" and value:
+                setattr(course, field, value.value)
+            else:
+                setattr(course, field, value)
+
+        course.updated_at = datetime.utcnow()
+
+        self.db.commit()
+        self.db.refresh(course)
+
+        return course
+
+    def delete_teacher_course(self, course_id: int, teacher_id: int) -> bool:
+        """删除教师课程"""
+        course = self.get_teacher_course_detail(course_id, teacher_id)
+
+        # 检查是否有学生已注册
+        enrollment_count = self.db.query(CourseEnrollment).filter(
+            CourseEnrollment.course_id == course_id
+        ).count()
+
+        if enrollment_count > 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="已有学生注册此课程，无法删除"
+            )
+
+        # 删除相关的课时
+        self.db.query(Lesson).filter(Lesson.course_id == course_id).delete()
+
+        # 删除课程
+        self.db.delete(course)
+        self.db.commit()
+
+        return True
+
+    def toggle_course_publish(self, course_id: int, teacher_id: int) -> Course:
+        """切换课程发布状态"""
+        course = self.get_teacher_course_detail(course_id, teacher_id)
+
+        # 如果要发布课程，检查是否满足发布条件
+        if not course.is_published:
+            # 检查是否有课时
+            lesson_count = self.db.query(Lesson).filter(Lesson.course_id == course_id).count()
+            if lesson_count == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="课程至少需要包含一个课时才能发布"
+                )
+
+        course.is_published = not course.is_published
+        course.updated_at = datetime.utcnow()
+
+        self.db.commit()
+        self.db.refresh(course)
+
+        return course
+
+    def get_teacher_course_statistics(self, teacher_id: int) -> dict:
+        """获取教师课程统计信息"""
+        # 总课程数
+        total_courses = self.db.query(Course).filter(Course.instructor_id == teacher_id).count()
+
+        # 已发布课程数
+        published_courses = self.db.query(Course).filter(
+            and_(
+                Course.instructor_id == teacher_id,
+                Course.is_published == True
+            )
+        ).count()
+
+        # 总学员数
+        total_students = self.db.query(func.count(CourseEnrollment.id)).join(
+            Course, CourseEnrollment.course_id == Course.id
+        ).filter(Course.instructor_id == teacher_id).scalar() or 0
+
+        # 平均评分
+        avg_rating = self.db.query(func.avg(Course.rating)).filter(
+            and_(
+                Course.instructor_id == teacher_id,
+                Course.rating_count > 0
+            )
+        ).scalar() or 0.0
+
+        return {
+            "total_courses": total_courses,
+            "published_courses": published_courses,
+            "draft_courses": total_courses - published_courses,
+            "total_students": total_students,
+            "average_rating": round(float(avg_rating), 1) if avg_rating else 0.0
+        }
     
     def get_course_by_id(self, course_id: int) -> Optional[Course]:
         """根据ID获取课程"""

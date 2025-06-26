@@ -171,23 +171,135 @@ class WrongQuestion(Base):
 class ExerciseStatistics(Base):
     """练习统计模型"""
     __tablename__ = "exercise_statistics"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    
+
     # 日期
     date = Column(DateTime(timezone=True), nullable=False, index=True)
-    
+
     # 统计数据
     total_exercises = Column(Integer, default=0)
     completed_exercises = Column(Integer, default=0)
     total_questions = Column(Integer, default=0)
     correct_questions = Column(Integer, default=0)
     total_time = Column(Integer, default=0)  # 总用时(分钟)
-    
+
     # 按科目统计 (JSON格式)
     subject_stats = Column(JSON, nullable=True)
-    
+
     # 时间戳
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class GradeAnalysis(Base):
+    """成绩分析模型"""
+    __tablename__ = "grade_analysis"
+
+    id = Column(Integer, primary_key=True, index=True)
+    exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
+    teacher_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # 基础统计
+    total_attempts = Column(Integer, default=0)
+    completed_attempts = Column(Integer, default=0)
+    average_score = Column(Float, default=0.0)
+    highest_score = Column(Float, default=0.0)
+    lowest_score = Column(Float, default=0.0)
+
+    # 分数分布统计
+    score_distribution = Column(JSON, nullable=True)  # 分数段分布
+    difficulty_analysis = Column(JSON, nullable=True)  # 难度分析
+
+    # 知识点分析
+    knowledge_point_stats = Column(JSON, nullable=True)  # 知识点掌握情况
+    common_mistakes = Column(JSON, nullable=True)  # 常见错误分析
+
+    # 时间分析
+    average_time = Column(Integer, default=0)  # 平均用时(秒)
+    time_distribution = Column(JSON, nullable=True)  # 时间分布
+
+    # 分析时间
+    analyzed_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # 关联关系
+    exercise = relationship("Exercise", backref="grade_analysis")
+
+
+class StudentPerformance(Base):
+    """学生表现分析模型"""
+    __tablename__ = "student_performance"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
+    teacher_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # 基础表现数据
+    score = Column(Float, nullable=False)
+    max_score = Column(Float, nullable=False)
+    percentage = Column(Float, nullable=False)  # 得分率
+    time_spent = Column(Integer, nullable=False)  # 用时(秒)
+
+    # 排名信息
+    class_rank = Column(Integer, nullable=True)  # 班级排名
+    percentile = Column(Float, nullable=True)  # 百分位数
+
+    # 能力分析
+    strengths = Column(JSON, nullable=True)  # 优势知识点
+    weaknesses = Column(JSON, nullable=True)  # 薄弱知识点
+    improvement_suggestions = Column(JSON, nullable=True)  # 改进建议
+
+    # 对比分析
+    vs_class_average = Column(Float, nullable=True)  # 与班级平均分对比
+    vs_previous_attempt = Column(Float, nullable=True)  # 与上次成绩对比
+    progress_trend = Column(String(20), nullable=True)  # 进步趋势: improving, declining, stable
+
+    # 分析时间
+    analyzed_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class ClassGradeReport(Base):
+    """班级成绩报告模型"""
+    __tablename__ = "class_grade_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
+    teacher_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # 报告基本信息
+    report_title = Column(String(200), nullable=False)
+    report_type = Column(String(50), nullable=False)  # exam, quiz, homework, practice
+
+    # 班级统计
+    total_students = Column(Integer, nullable=False)
+    participated_students = Column(Integer, nullable=False)
+    participation_rate = Column(Float, nullable=False)
+
+    # 成绩统计
+    class_average = Column(Float, nullable=False)
+    median_score = Column(Float, nullable=False)
+    standard_deviation = Column(Float, nullable=False)
+
+    # 分数分布
+    excellent_count = Column(Integer, default=0)  # 优秀(90+)
+    good_count = Column(Integer, default=0)       # 良好(80-89)
+    fair_count = Column(Integer, default=0)       # 中等(70-79)
+    poor_count = Column(Integer, default=0)       # 及格(60-69)
+    fail_count = Column(Integer, default=0)       # 不及格(<60)
+
+    # 详细分析数据
+    question_analysis = Column(JSON, nullable=True)  # 题目分析
+    learning_objectives_analysis = Column(JSON, nullable=True)  # 学习目标达成分析
+    recommendations = Column(JSON, nullable=True)  # 教学建议
+
+    # 报告状态
+    is_published = Column(Boolean, default=False)
+
+    # 时间戳
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    published_at = Column(DateTime(timezone=True), nullable=True)

@@ -161,3 +161,59 @@ class AIErrorResponse(BaseModel):
     error_message: str = Field(..., description="错误信息")
     suggestion: Optional[str] = Field(None, description="建议")
     retry_after: Optional[int] = Field(None, description="重试间隔(秒)")
+
+
+# AI题目生成相关模型
+class GeneratedQuestion(BaseModel):
+    """生成的题目模型"""
+    question_text: str = Field(..., description="题目内容")
+    question_type: str = Field(..., description="题目类型")
+    options: Optional[List[str]] = Field(None, description="选择题选项")
+    correct_answer: str = Field(..., description="正确答案")
+    explanation: str = Field(..., description="题目解析")
+    points: int = Field(10, description="题目分值")
+    difficulty: str = Field(..., description="题目难度")
+
+
+class QuestionGenerationRequest(BaseModel):
+    """题目生成请求模型"""
+    subject: str = Field(..., min_length=1, max_length=50, description="科目")
+    topic: str = Field(..., min_length=1, max_length=100, description="主题")
+    difficulty: str = Field(..., description="难度等级")
+    question_count: int = Field(..., ge=1, le=20, description="题目数量")
+    question_types: List[str] = Field(..., min_items=1, description="题目类型列表")
+    additional_requirements: Optional[str] = Field(None, max_length=500, description="额外要求")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "subject": "数学",
+                "topic": "函数与极限",
+                "difficulty": "medium",
+                "question_count": 5,
+                "question_types": ["multiple_choice", "fill_blank"],
+                "additional_requirements": "重点考查极限的计算方法"
+            }
+        }
+
+
+class QuestionGenerationResponse(BaseModel):
+    """题目生成响应模型"""
+    questions: List[GeneratedQuestion] = Field(..., description="生成的题目列表")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "questions": [
+                    {
+                        "question_text": "函数f(x)=x²在x=2处的极限值是？",
+                        "question_type": "multiple_choice",
+                        "options": ["2", "4", "8", "不存在"],
+                        "correct_answer": "4",
+                        "explanation": "根据极限的定义，当x趋向于2时，f(x)=x²的极限值为2²=4",
+                        "points": 10,
+                        "difficulty": "medium"
+                    }
+                ]
+            }
+        }

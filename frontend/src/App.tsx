@@ -13,12 +13,32 @@ import { ChatRoom } from "./pages/student/ChatRoom";
 import { AIAssistant } from "./pages/student/AIAssistant";
 import { Profile } from "./pages/student/Profile";
 
+// 教师端页面导入
+import { TeacherDashboard } from "./pages/teacher/Dashboard";
+import { TeacherCourseManagement } from "./pages/teacher/CourseManagement";
+import { TeacherCourseDetail } from "./pages/teacher/CourseDetail";
+import { TeacherCourseCreate } from "./pages/teacher/CourseCreate";
+import { TeacherCourseEdit } from "./pages/teacher/CourseEdit";
+import { TeacherExercises } from "./pages/teacher/Exercises";
+import { TeacherExerciseDetail } from "./pages/teacher/ExerciseDetail";
+import { TeacherExerciseCreate } from "./pages/teacher/ExerciseCreate";
+import { TeacherExerciseEdit } from "./pages/teacher/ExerciseEdit";
+import { TeacherStudents } from "./pages/teacher/Students";
+import { TeacherStudentDetail } from "./pages/teacher/StudentDetail";
+import { TeacherGrades } from "./pages/teacher/Grades";
+import { TeacherProfile } from "./pages/teacher/Profile";
+import { TeacherAIAssistant } from "./pages/teacher/AIAssistant";
+import { TeacherChatRoom } from "./pages/teacher/ChatRoom";
+
 function App() {
   return (
     <AIProvider>
       <Router>
         <Routes>
+          {/* 公共页面 */}
           <Route path="/" element={<Home />} />
+
+          {/* 学生端路由 */}
           <Route path="/student/dashboard" element={<Dashboard />} />
           <Route path="/student/courses" element={<Courses />} />
           <Route path="/student/courses/:courseId" element={<CourseDetail />} />
@@ -29,7 +49,23 @@ function App() {
           <Route path="/student/chatroom" element={<ChatRoom />} />
           <Route path="/student/ai-assistant" element={<AIAssistant />} />
           <Route path="/student/profile" element={<Profile />} />
-          {/* 添加更多路由 */}
+
+          {/* 教师端路由 */}
+          <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+          <Route path="/teacher/courses" element={<TeacherCourseManagement />} />
+          <Route path="/teacher/courses/create" element={<TeacherCourseCreate />} />
+          <Route path="/teacher/courses/:courseId" element={<TeacherCourseDetail />} />
+          <Route path="/teacher/courses/:courseId/edit" element={<TeacherCourseEdit />} />
+          <Route path="/teacher/exercises" element={<TeacherExercises />} />
+          <Route path="/teacher/exercises/create" element={<TeacherExerciseCreate />} />
+          <Route path="/teacher/exercises/:exerciseId" element={<TeacherExerciseDetail />} />
+          <Route path="/teacher/exercises/:exerciseId/edit" element={<TeacherExerciseEdit />} />
+          <Route path="/teacher/students" element={<TeacherStudents />} />
+          <Route path="/teacher/students/:studentId" element={<TeacherStudentDetail />} />
+          <Route path="/teacher/grades" element={<TeacherGrades />} />
+          <Route path="/teacher/chatroom" element={<TeacherChatRoom />} />
+          <Route path="/teacher/ai-assistant" element={<TeacherAIAssistant />} />
+          <Route path="/teacher/profile" element={<TeacherProfile />} />
         </Routes>
         <Toaster />
       </Router>

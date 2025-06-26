@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { exerciseAPI } from "@/services/api";
 import {
   Clock,
   CheckCircle,
@@ -46,69 +47,90 @@ interface Exercise {
   description: string;
 }
 
-// 模拟数据
-const mockExercise: Exercise = {
-  id: 1,
-  title: "函数与极限 - 基础练习",
-  subject: "高等数学",
-  difficulty: "中级",
-  timeLimit: 60,
-  totalQuestions: 10,
-  description: "本练习包含函数与极限的基础概念和计算题目",
-  questions: [
-    {
-      id: 1,
-      type: 'multiple_choice',
-      title: '函数极限的定义',
-      content: '下列关于函数极限的描述，正确的是：',
-      options: [
-        'A. 函数在某点的极限值等于函数在该点的函数值',
-        'B. 函数极限存在当且仅当左极限和右极限都存在且相等',
-        'C. 函数极限不存在时，函数在该点一定不连续',
-        'D. 函数极限的值与函数在该点是否有定义无关'
-      ],
-      correctAnswer: 'B',
-      explanation: '函数极限存在的充要条件是左极限和右极限都存在且相等。极限值与函数在该点的函数值可能不同。',
-      difficulty: 'medium',
-      points: 10
-    },
-    {
-      id: 2,
-      type: 'fill_blank',
-      title: '极限计算',
-      content: '计算极限：lim(x→0) (sin x)/x = ____',
-      correctAnswer: '1',
-      explanation: '这是一个重要的极限公式：lim(x→0) (sin x)/x = 1',
-      difficulty: 'easy',
-      points: 8
-    },
-    {
-      id: 3,
-      type: 'essay',
-      title: '连续性证明',
-      content: '证明函数 f(x) = x² 在 x = 2 处连续。',
-      correctAnswer: '需要证明：1) f(2)存在；2) lim(x→2) f(x)存在；3) lim(x→2) f(x) = f(2)',
-      explanation: '连续性的定义需要满足三个条件：函数在该点有定义、极限存在、极限值等于函数值。',
-      difficulty: 'hard',
-      points: 15
-    }
-  ]
-};
+
 
 export const ExercisePractice = () => {
   const { exerciseId } = useParams();
   const navigate = useNavigate();
-  
-  const [exercise] = useState<Exercise>(mockExercise);
+
+  const [exercise, setExercise] = useState<Exercise | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [timeLeft, setTimeLeft] = useState(exercise.timeLimit * 60); // 转换为秒
+  const [timeLeft, setTimeLeft] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [showQuestionList, setShowQuestionList] = useState(false);
+  const [attemptId, setAttemptId] = useState<number | null>(null);
 
-  const currentQuestion = exercise.questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / exercise.totalQuestions) * 100;
+  // 获取练习数据
+  useEffect(() => {
+    const fetchExerciseData = async () => {
+      if (!exerciseId) {
+        setError("练习ID不存在");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        // 获取练习详情
+        const exerciseData = await exerciseAPI.getExerciseDetail(parseInt(exerciseId));
+
+        // 转换数据格式以匹配组件期望的格式
+        const timeLimit = exerciseData.time_limit || 60; // 默认60分钟
+        const formattedExercise: Exercise = {
+          id: exerciseData.id,
+          title: exerciseData.title,
+          subject: exerciseData.subject,
+          difficulty: exerciseData.difficulty,
+          timeLimit: timeLimit,
+          totalQuestions: exerciseData.total_questions,
+          description: exerciseData.description || "",
+          questions: exerciseData.questions?.map(q => ({
+            id: q.id,
+            type: q.question_type,
+            title: q.title || `题目 ${q.id}`,
+            content: q.content,
+            options: q.options || [],
+            correctAnswer: q.correct_answer,
+            explanation: q.explanation || "",
+            difficulty: q.difficulty,
+            points: q.points
+          })) || []
+        };
+
+        console.log("练习数据:", formattedExercise);
+        console.log("时间限制:", timeLimit, "分钟，总秒数:", timeLimit * 60);
+
+        setExercise(formattedExercise);
+        setTimeLeft(timeLimit * 60);
+
+        // 开始练习尝试
+        const attempt = await exerciseAPI.startExercise(parseInt(exerciseId));
+        setAttemptId(attempt.id);
+
+      } catch (err: any) {
+        console.error("获取练习数据失败:", err);
+        setError(err.message || "获取练习数据失败");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchExerciseData();
+  }, [exerciseId]);
+
+  const currentQuestion = exercise?.questions[currentQuestionIndex];
+  const progress = exercise ? ((currentQuestionIndex + 1) / exercise.totalQuestions) * 100 : 0;
+
+  // 调试信息
+  console.log("当前题目索引:", currentQuestionIndex);
+  console.log("总题目数:", exercise?.questions.length);
+  console.log("是否最后一题:", exercise ? currentQuestionIndex === exercise.questions.length - 1 : false);
+  console.log("是否已提交:", isSubmitted);
 
   // 计时器
   useEffect(() => {
@@ -116,6 +138,7 @@ export const ExercisePractice = () => {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
     } else if (timeLeft === 0 && !isSubmitted) {
+      // 时间到了自动提交
       handleSubmit();
     }
   }, [timeLeft, isSubmitted]);
@@ -129,6 +152,7 @@ export const ExercisePractice = () => {
 
   // 处理答案选择
   const handleAnswerChange = (answer: string) => {
+    if (!currentQuestion) return;
     setAnswers(prev => ({
       ...prev,
       [currentQuestion.id]: answer
@@ -137,7 +161,7 @@ export const ExercisePractice = () => {
 
   // 下一题
   const handleNext = () => {
-    if (currentQuestionIndex < exercise.questions.length - 1) {
+    if (exercise && currentQuestionIndex < exercise.questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
       setShowExplanation(false);
     }
@@ -159,14 +183,52 @@ export const ExercisePractice = () => {
   };
 
   // 提交练习
-  const handleSubmit = () => {
-    setIsSubmitted(true);
-    setShowExplanation(true);
-    // 这里可以调用API提交答案
-    // 提交后跳转到结果页面
-    setTimeout(() => {
-      navigate(`/student/exercises/result/${exerciseId}`);
-    }, 2000); // 2秒后跳转，让用户看到提交成功的反馈
+  const handleSubmit = async () => {
+    console.log("handleSubmit 被调用");
+    console.log("attemptId:", attemptId);
+    console.log("exercise:", exercise);
+    console.log("answers:", answers);
+
+    if (!attemptId || !exercise) {
+      console.error("缺少必要的数据：attemptId或exercise");
+      console.error("attemptId:", attemptId);
+      console.error("exercise:", exercise);
+      return;
+    }
+
+    try {
+      setIsSubmitted(true);
+      setShowExplanation(true);
+
+      // 准备提交的答案数据
+      const submitData = {
+        attempt_id: attemptId,
+        answers: exercise.questions.map(question => ({
+          question_id: question.id,
+          answer_content: answers[question.id] || "",
+          time_spent: 0 // 可以后续添加每题用时统计
+        }))
+      };
+
+      console.log("提交答案数据:", submitData);
+
+      // 临时跳过API调用，直接测试跳转
+      console.log("跳过API调用，直接跳转...");
+      navigate(`/student/exercises/result/${exerciseId}?attemptId=${attemptId}`);
+
+      // TODO: 恢复API调用
+      // console.log("开始调用API...");
+      // const result = await exerciseAPI.submitExercise(submitData);
+      // console.log("API调用成功，结果:", result);
+      // console.log("准备跳转到结果页面...");
+      // navigate(`/student/exercises/result/${exerciseId}?attemptId=${attemptId}`);
+
+    } catch (error: any) {
+      console.error("提交答案失败:", error);
+      setIsSubmitted(false);
+      setShowExplanation(false);
+      // 可以添加错误提示
+    }
   };
 
   // 返回练习列表
@@ -178,10 +240,62 @@ export const ExercisePractice = () => {
   const handleRestart = () => {
     setCurrentQuestionIndex(0);
     setAnswers({});
-    setTimeLeft(exercise.timeLimit * 60);
+    if (exercise) {
+      setTimeLeft(exercise.timeLimit * 60);
+    }
     setIsSubmitted(false);
     setShowExplanation(false);
   };
+
+  // 加载状态
+  if (loading) {
+    return (
+      <StudentLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">正在加载练习数据...</p>
+          </div>
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  // 错误状态
+  if (error) {
+    return (
+      <StudentLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">加载失败</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={() => navigate('/student/exercises')}>
+              返回练习列表
+            </Button>
+          </div>
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  // 练习数据不存在
+  if (!exercise) {
+    return (
+      <StudentLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">练习不存在</h2>
+            <p className="text-gray-600 mb-4">未找到指定的练习</p>
+            <Button onClick={() => navigate('/student/exercises')}>
+              返回练习列表
+            </Button>
+          </div>
+        </div>
+      </StudentLayout>
+    );
+  }
 
   return (
     <StudentLayout fullScreen>
@@ -323,14 +437,15 @@ export const ExercisePractice = () => {
           </motion.div>
 
           {/* 题目卡片 */}
-          <motion.div
-            key={currentQuestion.id}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="flex-1 flex flex-col"
-          >
+          {currentQuestion && (
+            <motion.div
+              key={currentQuestion.id}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex-1 flex flex-col"
+            >
             <Card className="border-0 shadow-lg flex-1 flex flex-col">
               <CardHeader className="pb-4 flex-shrink-0">
                 <div className="flex items-center justify-between">
@@ -402,6 +517,7 @@ export const ExercisePractice = () => {
               </CardContent>
             </Card>
           </motion.div>
+          )}
 
           {/* 底部操作栏 */}
           <motion.div
@@ -445,7 +561,13 @@ export const ExercisePractice = () => {
 
               {!isSubmitted ? (
                 currentQuestionIndex === exercise.questions.length - 1 ? (
-                  <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700">
+                  <Button
+                    onClick={() => {
+                      console.log("提交按钮被点击");
+                      handleSubmit();
+                    }}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
                     <Send className="w-4 h-4 mr-2" />
                     提交答案
                   </Button>

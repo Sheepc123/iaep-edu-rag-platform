@@ -5,7 +5,10 @@
 # 导入所有模型类，确保SQLAlchemy能够发现它们
 from .user import User, StudentProfile, TeacherProfile, UserSession, UserActivity
 from .course import Course, Lesson, CourseEnrollment, LessonProgress, CourseCategory, StudyPlan
-from .exercise import Exercise, Question, ExerciseAttempt, StudentAnswer, WrongQuestion, ExerciseStatistics
+from .exercise import (
+    Exercise, Question, ExerciseAttempt, StudentAnswer, WrongQuestion, ExerciseStatistics,
+    GradeAnalysis, StudentPerformance, ClassGradeReport
+)
 from .chat import (
     ChatRoom, ChatMember, ChatMessage, UserContact,
     AIConversation, AIMessage, AIRecommendation, UserOnlineStatus
@@ -35,6 +38,9 @@ __all__ = [
     "StudentAnswer",
     "WrongQuestion",
     "ExerciseStatistics",
+    "GradeAnalysis",
+    "StudentPerformance",
+    "ClassGradeReport",
     
     # 聊天和AI相关模型
     "ChatRoom",

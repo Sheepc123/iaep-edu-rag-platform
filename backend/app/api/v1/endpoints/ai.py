@@ -8,7 +8,8 @@ from typing import List
 from ....core.database import get_db
 from ....schemas.ai import (
     AIMessageCreate, AIMessageResponse, AIConversationCreate,
-    AIConversationResponse, AIFeedbackCreate, AIUsageStats
+    AIConversationResponse, AIFeedbackCreate, AIUsageStats,
+    QuestionGenerationRequest, QuestionGenerationResponse
 )
 from ....services.ai_service import AIService
 from ....models.user import User
@@ -185,3 +186,48 @@ async def ai_health_check():
         "version": "1.0.0",
         "timestamp": "2024-06-25T00:00:00Z"
     }
+
+
+@router.post("/generate-questions", response_model=QuestionGenerationResponse, summary="AI生成题目")
+async def generate_questions(
+    request: QuestionGenerationRequest,
+    current_user: User = Depends(get_current_active_user),
+    ai_service: AIService = Depends(get_ai_service)
+):
+    """
+    使用AI生成练习题目
+
+    - **subject**: 科目
+    - **topic**: 主题
+    - **difficulty**: 难度 (easy/medium/hard)
+    - **question_count**: 题目数量
+    - **question_types**: 题目类型列表
+    - **additional_requirements**: 额外要求（可选）
+    """
+    try:
+        # 验证用户权限（只有教师可以生成题目）
+        if current_user.role != "teacher":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="只有教师可以使用AI生成题目功能"
+            )
+
+        result = await ai_service.generate_questions(
+            user_id=current_user.id,
+            subject=request.subject,
+            topic=request.topic,
+            difficulty=request.difficulty,
+            question_count=request.question_count,
+            question_types=request.question_types,
+            additional_requirements=request.additional_requirements
+        )
+
+        return QuestionGenerationResponse(**result)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"题目生成失败: {str(e)}"
+        )

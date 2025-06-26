@@ -43,9 +43,9 @@ class ExerciseService:
         exercise = Exercise(
             title=exercise_data.title,
             description=exercise_data.description,
-            category=exercise_data.category.value,
+            category=exercise_data.category,
             subject=exercise_data.subject,
-            difficulty=exercise_data.difficulty.value,
+            difficulty=exercise_data.difficulty,
             time_limit=exercise_data.time_limit,
             created_by=creator_id,
             is_published=exercise_data.is_published
@@ -72,13 +72,13 @@ class ExerciseService:
         
         # 应用筛选条件
         if query_params.category:
-            query = query.filter(Exercise.category == query_params.category.value)
-        
+            query = query.filter(Exercise.category == query_params.category)
+
         if query_params.subject:
             query = query.filter(Exercise.subject == query_params.subject)
-        
+
         if query_params.difficulty:
-            query = query.filter(Exercise.difficulty == query_params.difficulty.value)
+            query = query.filter(Exercise.difficulty == query_params.difficulty)
         
         if query_params.is_published is not None:
             query = query.filter(Exercise.is_published == query_params.is_published)
@@ -125,10 +125,7 @@ class ExerciseService:
         update_data = exercise_data.dict(exclude_unset=True)
         for field, value in update_data.items():
             if hasattr(exercise, field):
-                if field in ['category', 'difficulty'] and value:
-                    setattr(exercise, field, value.value)
-                else:
-                    setattr(exercise, field, value)
+                setattr(exercise, field, value)
         
         self.db.commit()
         self.db.refresh(exercise)
@@ -181,11 +178,11 @@ class ExerciseService:
             exercise_id=question_data.exercise_id,
             title=question_data.title,
             content=question_data.content,
-            question_type=question_data.question_type.value,
+            question_type=question_data.question_type,
             options=json.dumps(question_data.options, ensure_ascii=False) if question_data.options else None,
             correct_answer=question_data.correct_answer,
             explanation=question_data.explanation,
-            difficulty=question_data.difficulty.value,
+            difficulty=question_data.difficulty,
             points=question_data.points,
             subject=question_data.subject,
             tags=json.dumps(question_data.tags, ensure_ascii=False) if question_data.tags else None
@@ -221,12 +218,12 @@ class ExerciseService:
         # 应用筛选条件
         if query_params.exercise_id:
             query = query.filter(Question.exercise_id == query_params.exercise_id)
-        
+
         if query_params.question_type:
-            query = query.filter(Question.question_type == query_params.question_type.value)
-        
+            query = query.filter(Question.question_type == query_params.question_type)
+
         if query_params.difficulty:
-            query = query.filter(Question.difficulty == query_params.difficulty.value)
+            query = query.filter(Question.difficulty == query_params.difficulty)
         
         if query_params.subject:
             query = query.filter(Question.subject == query_params.subject)
@@ -267,8 +264,6 @@ class ExerciseService:
                     setattr(question, field, json.dumps(value, ensure_ascii=False))
                 elif field == 'tags':
                     setattr(question, field, json.dumps(value, ensure_ascii=False))
-                elif field in ['question_type', 'difficulty'] and hasattr(value, 'value'):
-                    setattr(question, field, value.value)
                 else:
                     setattr(question, field, value)
         
@@ -508,10 +503,10 @@ class ExerciseService:
     def _grade_answer(self, answer: StudentAnswer, question: Question):
         """评分答案"""
         # 简单的字符串匹配评分（可以扩展为更复杂的评分逻辑）
-        if question.question_type == QuestionType.MULTIPLE_CHOICE.value:
+        if question.question_type == "multiple_choice":
             # 选择题：完全匹配
             is_correct = answer.answer_content.strip().upper() == question.correct_answer.strip().upper()
-        elif question.question_type == QuestionType.FILL_BLANK.value:
+        elif question.question_type == "fill_blank":
             # 填空题：去除空格后匹配
             is_correct = answer.answer_content.strip() == question.correct_answer.strip()
         else:
@@ -724,7 +719,7 @@ class ExerciseService:
             # 该分类的练习尝试
             attempts = self.db.query(ExerciseAttempt).join(Exercise).filter(
                 ExerciseAttempt.student_id == student_id,
-                Exercise.category == category.value
+                Exercise.category == category
             ).all()
 
             completed_attempts = [a for a in attempts if a.is_completed]

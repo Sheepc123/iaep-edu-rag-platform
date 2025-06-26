@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
   User,
   Mail,
@@ -13,12 +14,20 @@ import {
   Eye,
   EyeOff,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  BookOpen,
+  Clock,
+  Star,
+  Users,
+  PlayCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StudentLayout from "@/components/layouts/StudentLayout";
+import { courseAPI, CourseEnrollment } from "@/services/api";
+import { useToast } from "@/components/ui/use-toast";
 
 interface UserProfile {
   name: string;
@@ -36,7 +45,24 @@ interface PasswordForm {
   confirmPassword: string;
 }
 
+interface EnrolledCourse {
+  id: number;
+  title: string;
+  description: string;
+  cover_image: string;
+  category: string;
+  difficulty: string;
+  instructor_name: string;
+  total_lessons: number;
+  duration: number;
+  rating: number;
+  enrolled_at: string;
+}
+
 export const Profile = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
   // 用户信息状态
   const [profile, setProfile] = useState<UserProfile>({
     name: "张同学",
@@ -47,6 +73,10 @@ export const Profile = () => {
     studentId: "2021012345",
     avatar: "https://i.pravatar.cc/120"
   });
+
+  // 我的课程状态
+  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
+  const [coursesLoading, setCoursesLoading] = useState(true);
 
   // 编辑状态
   const [isEditing, setIsEditing] = useState(false);
@@ -68,6 +98,64 @@ export const Profile = () => {
   // 保存状态
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // 标签页状态
+  const [activeTab, setActiveTab] = useState("profile");
+  const [hasLoadedCourses, setHasLoadedCourses] = useState(false);
+
+  // 获取已注册课程
+  const fetchEnrolledCourses = async () => {
+    try {
+      setCoursesLoading(true);
+      const enrollments = await courseAPI.getMyCourses();
+
+      // 转换数据格式，将CourseEnrollment转换为EnrolledCourse
+      const courses: EnrolledCourse[] = enrollments.map((enrollment: CourseEnrollment) => ({
+        id: enrollment.course_id,
+        title: enrollment.course?.title || '未知课程',
+        description: enrollment.course?.description || '',
+        cover_image: enrollment.course?.cover_image || '',
+        category: enrollment.course?.category || '',
+        difficulty: enrollment.course?.difficulty || 'medium',
+        instructor_name: enrollment.course?.instructor_name || '',
+        total_lessons: enrollment.course?.total_lessons || 0,
+        duration: enrollment.course?.duration || 0,
+        rating: enrollment.course?.rating || 0,
+        enrolled_at: enrollment.enrolled_at
+      }));
+
+      setEnrolledCourses(courses);
+    } catch (error) {
+      console.error('获取已注册课程失败:', error);
+      // 设置空的课程列表，避免显示错误提示
+      setEnrolledCourses([]);
+      // 只在用户主动查看课程时才显示错误提示
+      if (activeTab === "courses") {
+        toast({
+          title: "加载课程数据失败",
+          description: "暂时无法获取课程信息，请稍后重试",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setCoursesLoading(false);
+    }
+  };
+
+  // 处理标签页切换
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    // 只有在切换到课程标签页且还没有加载过课程数据时才获取
+    if (value === "courses" && !hasLoadedCourses) {
+      fetchEnrolledCourses();
+      setHasLoadedCourses(true);
+    }
+  };
+
+  // 只在需要时获取课程数据，而不是页面加载时就获取
+  // useEffect(() => {
+  //   fetchEnrolledCourses();
+  // }, []);
 
   // 动画配置
   const containerVariants = {
@@ -157,7 +245,7 @@ export const Profile = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">个人中心</h1>
-              <p className="text-gray-600 mt-2">管理您的个人信息和账户设置</p>
+              <p className="text-gray-600 mt-2">管理您的个人信息和学习课程</p>
             </div>
             <Badge variant="outline" className="px-4 py-2">
               学生账户
@@ -186,9 +274,25 @@ export const Profile = () => {
           </motion.div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* 左侧：头像和基本信息 */}
-          <motion.div className="lg:col-span-1" variants={cardVariants}>
+        {/* 标签页导航 */}
+        <motion.div variants={cardVariants}>
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="profile" className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                个人信息
+              </TabsTrigger>
+              <TabsTrigger value="courses" className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4" />
+                我的课程
+              </TabsTrigger>
+            </TabsList>
+
+            {/* 个人信息标签页 */}
+            <TabsContent value="profile" className="mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* 左侧：头像和基本信息 */}
+                <motion.div className="lg:col-span-1" variants={cardVariants}>
             <Card className="border-0 shadow-lg">
               <CardContent className="p-8 text-center">
                 <div className="relative inline-block mb-6">
@@ -512,6 +616,120 @@ export const Profile = () => {
             </Card>
           </motion.div>
         </div>
+      </TabsContent>
+
+      {/* 我的课程标签页 */}
+      <TabsContent value="courses" className="mt-6">
+        <motion.div variants={cardVariants}>
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-blue-600" />
+                我的课程
+                <Badge variant="secondary" className="ml-2">
+                  {enrolledCourses.length} 门课程
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {coursesLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-gray-600">加载中...</span>
+                </div>
+              ) : enrolledCourses.length === 0 ? (
+                <div className="text-center py-12">
+                  <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">暂无已注册课程</h3>
+                  <p className="text-gray-600 mb-6">您还没有注册任何课程，快去课程中心看看吧！</p>
+                  <Button
+                    onClick={() => navigate('/student/courses')}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    浏览课程
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {enrolledCourses.map((course) => (
+                    <motion.div
+                      key={course.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="group cursor-pointer"
+                      onClick={() => navigate(`/student/courses/${course.id}`)}
+                    >
+                      <Card className="h-full border-0 shadow-md hover:shadow-lg transition-all duration-300 group-hover:scale-105">
+                        <div className="relative">
+                          <img
+                            src={course.cover_image || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=200&fit=crop"}
+                            alt={course.title}
+                            className="w-full h-48 object-cover rounded-t-lg"
+                          />
+                          <div className="absolute top-3 left-3">
+                            <Badge
+                              className={`${
+                                course.difficulty === 'easy' ? 'bg-green-100 text-green-700' :
+                                course.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-red-100 text-red-700'
+                              }`}
+                            >
+                              {course.difficulty === 'easy' ? '初级' :
+                               course.difficulty === 'medium' ? '中级' : '高级'}
+                            </Badge>
+                          </div>
+                          <div className="absolute top-3 right-3">
+                            <div className="bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                              <PlayCircle className="w-3 h-3" />
+                              {course.total_lessons} 课时
+                            </div>
+                          </div>
+                        </div>
+                        <CardContent className="p-4">
+                          <div className="mb-2">
+                            <Badge variant="outline" className="text-xs">
+                              {course.category}
+                            </Badge>
+                          </div>
+                          <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                            {course.title}
+                          </h3>
+                          <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                            {course.description}
+                          </p>
+                          <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
+                            <div className="flex items-center gap-1">
+                              <User className="w-4 h-4" />
+                              {course.instructor_name}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              {Math.round(course.duration / 60)}小时
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1">
+                              <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                              <span className="text-sm font-medium">{course.rating}</span>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              注册于 {new Date(course.enrolled_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </TabsContent>
+    </Tabs>
+  </motion.div>
       </motion.div>
     </StudentLayout>
   );

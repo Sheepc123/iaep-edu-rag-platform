@@ -176,6 +176,46 @@ class StudentProfileResponse(BaseModel):
         from_attributes = True
 
 
+class TeacherProfileCreate(BaseModel):
+    """教师档案创建模式"""
+    teacher_id: Optional[str] = Field(None, max_length=20, description="工号")
+    department: Optional[str] = Field(None, max_length=100, description="部门")
+    title: Optional[str] = Field(None, max_length=50, description="职称")
+    specialization: Optional[str] = Field(None, max_length=200, description="专业领域")
+    teaching_years: Optional[int] = Field(None, ge=0, description="教学年限")
+    bio: Optional[str] = Field(None, description="个人简介")
+
+
+class TeacherProfileUpdate(BaseModel):
+    """教师档案更新模式"""
+    teacher_id: Optional[str] = Field(None, max_length=20, description="工号")
+    department: Optional[str] = Field(None, max_length=100, description="部门")
+    title: Optional[str] = Field(None, max_length=50, description="职称")
+    specialization: Optional[str] = Field(None, max_length=200, description="专业领域")
+    teaching_years: Optional[int] = Field(None, ge=0, description="教学年限")
+    bio: Optional[str] = Field(None, description="个人简介")
+
+
+class TeacherProfileResponse(BaseModel):
+    """教师档案响应模式"""
+    id: int
+    user_id: int
+    teacher_id: Optional[str]
+    department: Optional[str]
+    title: Optional[str]
+    specialization: Optional[str]
+    total_courses: int
+    total_students: int
+    teaching_years: int
+    rating: float
+    bio: Optional[str]
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
 class AuthResponse(BaseModel):
     """通用认证响应模式"""
     success: bool = Field(..., description="操作是否成功")

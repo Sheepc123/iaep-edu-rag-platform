@@ -2,9 +2,10 @@
 练习系统数据验证模式
 """
 from pydantic import BaseModel, Field, validator
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
+import json
 
 
 class DifficultyLevel(str, Enum):
@@ -87,7 +88,6 @@ class QuestionResponse(QuestionBase):
     exercise_id: Optional[int]
     total_attempts: int = 0
     correct_attempts: int = 0
-    accuracy_rate: float = 0.0
     is_active: bool = True
     created_at: datetime
     updated_at: Optional[datetime]
@@ -95,8 +95,31 @@ class QuestionResponse(QuestionBase):
     class Config:
         from_attributes = True
 
-    @property
-    def accuracy_rate(self) -> float:
+    @validator('options', pre=True)
+    def parse_options(cls, v):
+        """解析options字段，将JSON字符串转换为列表"""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, TypeError):
+                return None
+        return v
+
+    @validator('tags', pre=True)
+    def parse_tags(cls, v):
+        """解析tags字段，将JSON字符串转换为列表"""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, TypeError):
+                return None
+        return v
+
+    def get_accuracy_rate(self) -> float:
         """计算正确率"""
         if self.total_attempts == 0:
             return 0.0

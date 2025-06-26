@@ -33,7 +33,8 @@ export const AIAssistant = () => {
     addMessage,
     createNewConversation,
     switchConversation,
-    deleteConversation
+    deleteConversation,
+    sendMessageToAPI
   } = useAI();
 
   const [inputValue, setInputValue] = useState('');
@@ -54,56 +55,14 @@ export const AIAssistant = () => {
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: inputValue,
-      sender: 'user',
-      timestamp: new Date()
-    };
-
-    addMessage(userMessage);
     const userInput = inputValue;
     setInputValue('');
-    setIsTyping(true);
 
-    // 模拟AI回复
-    setTimeout(() => {
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: generateAIResponse(userInput),
-        sender: 'ai',
-        timestamp: new Date(),
-        type: 'text'
-      };
-
-      addMessage(aiMessage);
-      setIsTyping(false);
-    }, 1500);
+    // 使用API发送消息
+    await sendMessageToAPI(userInput, currentConversationId);
   };
 
-  // 模拟AI回复生成
-  const generateAIResponse = (userInput: string): string => {
-    const lowerInput = userInput.toLowerCase();
-    
-    if (lowerInput.includes('数学') || lowerInput.includes('计算')) {
-      return "我来帮你解决数学问题！请告诉我具体是哪个知识点遇到了困难，比如：\n\n• 函数与极限\n• 导数与微分\n• 积分计算\n• 线性代数\n• 概率统计\n\n我会为你提供详细的解答和练习建议。";
-    }
-    
-    if (lowerInput.includes('学习计划') || lowerInput.includes('计划')) {
-      return "制定学习计划是个好习惯！根据你的学习进度，我建议：\n\n📅 **本周目标**\n• 完成2-3个章节的学习\n• 每天练习10-15道题\n• 复习之前的错题\n\n⏰ **时间安排**\n• 上午：理论学习（2小时）\n• 下午：练习巩固（1.5小时）\n• 晚上：复习总结（30分钟）\n\n需要我为你制定更详细的计划吗？";
-    }
-    
-    if (lowerInput.includes('练习') || lowerInput.includes('题目')) {
-      return "我为你推荐一些练习题！根据你的学习情况：\n\n🎯 **基础练习**\n• 函数极限计算 - 10题\n• 导数基本公式 - 8题\n\n🔥 **提高练习**\n• 复合函数求导 - 6题\n• 积分应用题 - 5题\n\n📊 **建议**\n先完成基础练习，正确率达到80%后再进行提高练习。需要我为你生成具体的题目吗？";
-    }
-    
-    const responses = [
-      "这是一个很好的问题！让我来帮你分析一下...\n\n根据你的学习情况，我建议你可以从以下几个方面入手：\n\n1. 先理解基本概念\n2. 多做相关练习\n3. 总结解题方法\n\n需要我详细解释某个步骤吗？",
-      "我理解你的困惑！这个知识点确实需要仔细理解。\n\n让我用更简单的方式来解释：\n\n💡 **核心思路**\n把复杂问题分解成简单步骤\n\n📝 **解题步骤**\n1. 分析题目条件\n2. 选择合适方法\n3. 逐步计算求解\n\n你想从哪个步骤开始练习？",
-      "基于你之前的学习记录，我发现你在这个领域有很好的基础！\n\n🌟 **你的优势**\n• 基础概念掌握扎实\n• 计算能力较强\n\n📈 **提升建议**\n• 多练习综合应用题\n• 加强解题速度训练\n• 学习更多解题技巧\n\n要不要我为你推荐一些进阶练习？"
-    ];
-    return responses[Math.floor(Math.random() * responses.length)];
-  };
+
 
   // 快捷功能
   const quickActions = [
@@ -172,9 +131,14 @@ export const AIAssistant = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        deleteConversation(conversation.id);
+                        try {
+                          await deleteConversation(conversation.id);
+                        } catch (error) {
+                          console.error('删除对话失败:', error);
+                          // 可以添加用户提示
+                        }
                       }}
                       className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0 text-gray-400 hover:text-red-500"
                     >

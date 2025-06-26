@@ -3,11 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { 
-  PencilRuler, 
-  Clock, 
-  Target, 
-  CheckCircle, 
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  PencilRuler,
+  Clock,
+  Target,
+  CheckCircle,
   XCircle,
   AlertCircle,
   TrendingUp,
@@ -17,11 +20,14 @@ import {
   PlayCircle,
   RotateCcw,
   Filter,
-  Search
+  Search,
+  RefreshCw,
+  Loader2
 } from "lucide-react";
-import { motion } from "framer-motion";
-import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { exerciseAPI, Exercise } from "@/services/api";
 
 // Animation variants
 const containerVariants = {
@@ -150,6 +156,73 @@ const recentExercises = [
 
 export const Exercises = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // 状态管理
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedDifficulty, setSelectedDifficulty] = useState("all");
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // 获取练习列表
+  const fetchExercises = async () => {
+    try {
+      setLoading(true);
+
+      const params: any = {
+        page: currentPage,
+        page_size: 12,
+        is_published: true  // 只获取已发布的练习
+      };
+
+      if (selectedCategory !== "all") {
+        params.category = selectedCategory;
+      }
+      if (selectedDifficulty !== "all") {
+        params.difficulty = selectedDifficulty;
+      }
+
+      console.log("🔍 正在获取练习数据，参数:", params);
+      const response = await exerciseAPI.getExercises(params);
+      console.log("📚 练习API响应:", response);
+
+      // 处理响应数据
+      if (Array.isArray(response)) {
+        setExercises(response);
+      } else if (response.exercises) {
+        setExercises(response.exercises);
+        setTotalPages(Math.ceil(response.total / 12));
+      } else {
+        setExercises([]);
+      }
+
+    } catch (error) {
+      console.error("获取练习列表失败:", error);
+      toast({
+        title: "错误",
+        description: "获取练习列表失败",
+        variant: "destructive"
+      });
+      // 如果API失败，使用模拟数据
+      setExercises(recentExercises as any);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 页面加载时获取数据
+  useEffect(() => {
+    fetchExercises();
+  }, [currentPage, selectedCategory, selectedDifficulty]);
+
+  // 搜索处理
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchExercises();
+  };
 
   return (
     <StudentLayout>
@@ -161,17 +234,69 @@ export const Exercises = () => {
       >
         {/* Header */}
         <motion.div variants={cardVariants}>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">练习系统</h1>
               <p className="text-gray-600 mt-2">通过练习巩固知识，提升学习效果</p>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4 mr-2" />
-                筛选
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchExercises}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                刷新
               </Button>
-              <Button variant="outline" size="sm">
+            </div>
+          </div>
+
+          {/* 搜索和筛选 */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="搜索练习..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="选择分类" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部分类</SelectItem>
+                  <SelectItem value="自主练习">自主练习</SelectItem>
+                  <SelectItem value="课后作业">课后作业</SelectItem>
+                  <SelectItem value="模拟考试">模拟考试</SelectItem>
+                  <SelectItem value="错题本">错题本</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedDifficulty} onValueChange={setSelectedDifficulty}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="难度" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部难度</SelectItem>
+                  <SelectItem value="easy">简单</SelectItem>
+                  <SelectItem value="medium">中等</SelectItem>
+                  <SelectItem value="hard">困难</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button onClick={handleSearch} disabled={loading}>
                 <Search className="w-4 h-4 mr-2" />
                 搜索
               </Button>
@@ -247,35 +372,178 @@ export const Exercises = () => {
           </Card>
         </motion.div>
 
-        {/* Recent Exercises */}
+        {/* 练习列表 */}
         <motion.div variants={cardVariants}>
           <Card className="border-0 shadow-lg">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-xl font-bold">最近练习</CardTitle>
-                <Button variant="ghost" size="sm" className="text-blue-600">
-                  查看全部
-                </Button>
+                <CardTitle className="text-xl font-bold">
+                  可用练习 {exercises.length > 0 && `(${exercises.length})`}
+                </CardTitle>
+                {totalPages > 1 && (
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1 || loading}
+                    >
+                      上一页
+                    </Button>
+                    <span className="text-sm text-gray-600">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages || loading}
+                    >
+                      下一页
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentExercises.map((exercise, index) => (
-                  <motion.div
-                    key={exercise.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <ExerciseItem exercise={exercise} navigate={navigate} />
-                  </motion.div>
-                ))}
-              </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                  <span className="ml-2 text-gray-600">加载练习中...</span>
+                </div>
+              ) : exercises.length === 0 ? (
+                <div className="text-center py-12">
+                  <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">暂无练习</h3>
+                  <p className="text-gray-600">
+                    {selectedCategory !== "all" || selectedDifficulty !== "all"
+                      ? "没有找到符合条件的练习，请尝试调整筛选条件"
+                      : "教师还没有发布练习，请稍后再来查看"
+                    }
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <AnimatePresence>
+                    {exercises.map((exercise, index) => (
+                      <motion.div
+                        key={exercise.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <RealExerciseItem exercise={exercise} navigate={navigate} />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
       </motion.div>
     </StudentLayout>
+  );
+};
+
+// 真实练习项组件
+interface RealExerciseItemProps {
+  exercise: Exercise;
+  navigate: (path: string) => void;
+}
+
+const RealExerciseItem: React.FC<RealExerciseItemProps> = ({ exercise, navigate }) => {
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'easy': return 'bg-green-100 text-green-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'hard': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getDifficultyLabel = (difficulty: string) => {
+    switch (difficulty) {
+      case 'easy': return '简单';
+      case 'medium': return '中等';
+      case 'hard': return '困难';
+      default: return difficulty;
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('zh-CN');
+  };
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className="transition-all duration-200"
+    >
+      <Card className="border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200">
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-3">
+                <h3 className="text-lg font-semibold text-gray-900 hover:text-blue-600 cursor-pointer">
+                  {exercise.title}
+                </h3>
+                <Badge className={getDifficultyColor(exercise.difficulty)}>
+                  {getDifficultyLabel(exercise.difficulty)}
+                </Badge>
+                <Badge variant="outline">{exercise.category}</Badge>
+              </div>
+
+              {exercise.description && (
+                <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                  {exercise.description}
+                </p>
+              )}
+
+              <div className="flex items-center space-x-6 text-sm text-gray-500">
+                <span className="flex items-center">
+                  <BookOpen className="w-4 h-4 mr-1" />
+                  {exercise.subject}
+                </span>
+                <span className="flex items-center">
+                  <Target className="w-4 h-4 mr-1" />
+                  {exercise.total_questions || 0} 道题目
+                </span>
+                {exercise.time_limit && (
+                  <span className="flex items-center">
+                    <Clock className="w-4 h-4 mr-1" />
+                    {exercise.time_limit} 分钟
+                  </span>
+                )}
+                <span className="flex items-center">
+                  <Calendar className="w-4 h-4 mr-1" />
+                  {formatDate(exercise.created_at)}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-end space-y-2">
+              <Button
+                size="sm"
+                onClick={() => navigate(`/student/exercises/practice/${exercise.id}`)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <PlayCircle className="w-4 h-4 mr-2" />
+                开始练习
+              </Button>
+
+              {exercise.average_score > 0 && (
+                <div className="text-xs text-gray-500">
+                  平均分: {exercise.average_score.toFixed(1)}
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };
 

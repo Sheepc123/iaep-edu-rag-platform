@@ -83,20 +83,11 @@ export const LoginForm = ({ role, onBack }: LoginFormProps) => {
           navigate("/student/dashboard");
           break;
         case "teacher":
-          // navigate("/teacher/dashboard"); // 教师仪表盘路由
-          toast({
-            title: "提示",
-            description: "教师功能正在开发中，暂时跳转到学生界面",
-          });
-          navigate("/student/dashboard");
+          navigate("/teacher/dashboard");
           break;
         case "admin":
-          // navigate("/admin/dashboard"); // 管理员仪表盘路由
-          toast({
-            title: "提示",
-            description: "管理员功能正在开发中，暂时跳转到学生界面",
-          });
-          navigate("/student/dashboard");
+          // 管理员可以选择进入教师端或学生端，默认进入教师端
+          navigate("/teacher/dashboard");
           break;
         default:
           navigate("/");

@@ -12,7 +12,7 @@ import {
 import { ReactNode, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { SimpleAIButton } from "@/components/ai/SimpleAIButton";
+import { FloatingAIButton } from "@/components/ai/FloatingAIButton";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface StudentLayoutProps {
@@ -27,7 +27,7 @@ const StudentLayout = ({ children, fullScreen = false }: StudentLayoutProps) => 
       <main className={`flex-1 tech-background ${fullScreen ? 'p-0' : 'p-8'}`}>
         {children}
       </main>
-      <SimpleAIButton />
+      <FloatingAIButton />
     </div>
   );
 };

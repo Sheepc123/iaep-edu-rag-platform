@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
-  CheckSquare,
   BookOpen,
   Clock,
   Zap,
@@ -23,6 +22,9 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { courseAPI, CourseEnrollment } from "@/services/api";
+import { useToast } from "@/components/ui/use-toast";
 
 // Animation variants
 const containerVariants = {
@@ -130,19 +132,17 @@ export const Dashboard = () => {
 
         {/* Main Content Grid */}
         <motion.div
-          className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+          className="grid grid-cols-1 lg:grid-cols-2 gap-8"
           variants={containerVariants}
         >
-          {/* Left Column */}
-          <motion.div className="lg:col-span-2 space-y-8" variants={cardVariants}>
-            <TodoListCard />
+          {/* Left Column - 我的课程 */}
+          <motion.div variants={cardVariants}>
             <CoursesCard />
           </motion.div>
 
-          {/* Right Column */}
-          <motion.div className="space-y-8" variants={cardVariants}>
+          {/* Right Column - AI推荐 */}
+          <motion.div variants={cardVariants}>
             <AIRecommendationCard />
-            <QuickActionsCard />
           </motion.div>
         </motion.div>
 
@@ -269,120 +269,54 @@ const StatCard = ({ icon, title, value, unit, trend, color }: StatCardProps) => 
   );
 };
 
-// Todo List Card Component
-const TodoListCard = () => {
-  const todos = [
-    { id: 1, label: "完成第三章的在线测试", isDone: true, priority: "high" },
-    { id: 2, label: "观看 '导数应用' 视频", isDone: false, priority: "medium" },
-    { id: 3, label: "阅读 '积分方法' 补充材料", isDone: false, priority: "low" },
-    { id: 4, label: "提交数学作业", isDone: false, priority: "high" }
-  ];
 
-  return (
-    <Card className="border-0 shadow-lg">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xl font-bold flex items-center gap-2">
-            <CheckSquare className="w-5 h-5 text-blue-600" />
-            待办事项
-          </CardTitle>
-          <Badge variant="outline">{todos.filter(t => !t.isDone).length} 待完成</Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {todos.map((todo, index) => (
-            <motion.div
-              key={todo.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <TodoItem {...todo} />
-            </motion.div>
-          ))}
-        </div>
-        <Button variant="ghost" className="w-full mt-4 text-blue-600 hover:text-blue-700">
-          查看全部任务 <ChevronRight className="w-4 h-4 ml-1" />
-        </Button>
-      </CardContent>
-    </Card>
-  );
-};
-
-// Todo Item Component
-interface TodoItemProps {
-  label: string;
-  isDone: boolean;
-  priority: 'high' | 'medium' | 'low';
-}
-
-const TodoItem = ({ label, isDone, priority }: TodoItemProps) => {
-  const priorityColors = {
-    high: 'bg-red-100 text-red-600',
-    medium: 'bg-yellow-100 text-yellow-600',
-    low: 'bg-green-100 text-green-600'
-  };
-
-  return (
-    <motion.div
-      className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
-    >
-      <div className="flex items-center space-x-3">
-        <motion.div
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          <CheckSquare
-            className={`w-5 h-5 cursor-pointer ${
-              isDone ? "text-green-600 fill-green-100" : "text-gray-400"
-            }`}
-          />
-        </motion.div>
-        <span className={`${isDone ? "line-through text-gray-400" : "text-gray-700"} font-medium`}>
-          {label}
-        </span>
-      </div>
-      <Badge
-        variant="secondary"
-        className={`text-xs ${priorityColors[priority]}`}
-      >
-        {priority === 'high' ? '高' : priority === 'medium' ? '中' : '低'}
-      </Badge>
-    </motion.div>
-  );
-};
 
 // Courses Card Component
 const CoursesCard = () => {
-  const courses = [
-    {
-      id: 1,
-      title: "高等数学 (上)",
-      progress: 75,
-      instructor: "李教授",
-      nextClass: "2024-03-15 14:00",
-      color: "blue"
-    },
-    {
-      id: 2,
-      title: "线性代数",
-      progress: 40,
-      instructor: "王教授",
-      nextClass: "2024-03-16 10:00",
-      color: "purple"
-    },
-    {
-      id: 3,
-      title: "概率论与数理统计",
-      progress: 60,
-      instructor: "张教授",
-      nextClass: "2024-03-17 16:00",
-      color: "green"
-    }
-  ];
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [courses, setCourses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 获取我的课程数据
+  useEffect(() => {
+    const fetchMyCourses = async () => {
+      try {
+        setLoading(true);
+        const enrollments = await courseAPI.getMyCourses();
+
+        // 转换数据格式
+        const coursesData = enrollments.slice(0, 3).map((enrollment: CourseEnrollment, index: number) => ({
+          id: enrollment.course_id,
+          title: enrollment.course?.title || '未知课程',
+          progress: Math.round(enrollment.progress_percentage || 0),
+          instructor: enrollment.course?.instructor_name || '未知教师',
+          nextClass: "即将开始", // 可以根据实际情况调整
+          color: ['blue', 'purple', 'green'][index % 3] as 'blue' | 'purple' | 'green',
+          enrollment_id: enrollment.id
+        }));
+
+        setCourses(coursesData);
+      } catch (error) {
+        console.error('获取我的课程失败:', error);
+        // 如果获取失败，使用默认数据
+        setCourses([
+          {
+            id: 1,
+            title: "暂无课程数据",
+            progress: 0,
+            instructor: "请先注册课程",
+            nextClass: "",
+            color: "blue"
+          }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMyCourses();
+  }, []);
 
   return (
     <Card className="border-0 shadow-lg">
@@ -391,25 +325,55 @@ const CoursesCard = () => {
           <CardTitle className="text-xl font-bold flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-blue-600" />
             我的课程
+            {!loading && (
+              <Badge variant="secondary" className="ml-2">
+                {courses.length} 门课程
+              </Badge>
+            )}
           </CardTitle>
-          <Button variant="ghost" size="sm" className="text-blue-600">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-blue-600"
+            onClick={() => navigate('/student/profile')}
+          >
             查看全部 <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {courses.map((course, index) => (
-            <motion.div
-              key={course.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-gray-600">加载中...</span>
+          </div>
+        ) : courses.length === 0 ? (
+          <div className="text-center py-8">
+            <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <h4 className="text-lg font-medium text-gray-900 mb-2">暂无课程</h4>
+            <p className="text-gray-600 mb-4">您还没有注册任何课程</p>
+            <Button
+              onClick={() => navigate('/student/courses')}
+              className="bg-blue-600 hover:bg-blue-700"
             >
-              <CourseItem {...course} />
-            </motion.div>
-          ))}
-        </div>
+              <BookOpen className="w-4 h-4 mr-2" />
+              浏览课程
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {courses.map((course, index) => (
+              <motion.div
+                key={course.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <CourseItem {...course} />
+              </motion.div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -417,6 +381,7 @@ const CoursesCard = () => {
 
 // Course Item Component
 interface CourseItemProps {
+  id: number;
   title: string;
   progress: number;
   instructor: string;
@@ -424,11 +389,17 @@ interface CourseItemProps {
   color: 'blue' | 'purple' | 'green';
 }
 
-const CourseItem = ({ title, progress, instructor, nextClass, color }: CourseItemProps) => {
+const CourseItem = ({ id, title, progress, instructor, nextClass, color }: CourseItemProps) => {
+  const navigate = useNavigate();
+
   const colorClasses = {
     blue: 'from-blue-500 to-blue-600',
     purple: 'from-purple-500 to-purple-600',
     green: 'from-green-500 to-green-600'
+  };
+
+  const handleCourseClick = () => {
+    navigate(`/student/courses/${id}`);
   };
 
   return (
@@ -436,6 +407,7 @@ const CourseItem = ({ title, progress, instructor, nextClass, color }: CourseIte
       className="p-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-all cursor-pointer"
       whileHover={{ scale: 1.02, y: -2 }}
       whileTap={{ scale: 0.98 }}
+      onClick={handleCourseClick}
     >
       <div className="flex items-start justify-between mb-3">
         <div>
@@ -468,7 +440,15 @@ const CourseItem = ({ title, progress, instructor, nextClass, color }: CourseIte
           <Calendar className="w-3 h-3 mr-1" />
           下次课程：{nextClass}
         </div>
-        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 px-2 text-xs"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleCourseClick();
+          }}
+        >
           <PlayCircle className="w-3 h-3 mr-1" />
           继续学习
         </Button>
@@ -518,64 +498,13 @@ const AIRecommendationCard = () => {
             </div>
           </div>
 
-          <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
-            查看详细建议
-          </Button>
         </motion.div>
       </CardContent>
     </Card>
   );
 };
 
-// Quick Actions Card
-const QuickActionsCard = () => {
-  const actions = [
-    { icon: <BookMarked className="w-5 h-5" />, label: "开始学习", color: "blue" },
-    { icon: <Target className="w-5 h-5" />, label: "练习题目", color: "green" },
-    { icon: <Calendar className="w-5 h-5" />, label: "查看日程", color: "purple" },
-    { icon: <Award className="w-5 h-5" />, label: "学习报告", color: "orange" }
-  ];
 
-  return (
-    <Card className="border-0 shadow-lg">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-bold flex items-center gap-2">
-          <Zap className="w-5 h-5 text-yellow-600" />
-          快速操作
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-3">
-          {actions.map((action, index) => (
-            <motion.div
-              key={action.label}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button
-                variant="ghost"
-                className="w-full h-16 flex flex-col items-center justify-center space-y-1 hover:bg-gray-50"
-              >
-                <div className={`p-2 rounded-lg ${
-                  action.color === 'blue' ? 'bg-blue-100 text-blue-600' :
-                  action.color === 'green' ? 'bg-green-100 text-green-600' :
-                  action.color === 'purple' ? 'bg-purple-100 text-purple-600' :
-                  'bg-orange-100 text-orange-600'
-                }`}>
-                  {action.icon}
-                </div>
-                <span className="text-xs font-medium">{action.label}</span>
-              </Button>
-            </motion.div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
 
 // Ability Assessment Card
 const AbilityCard = () => {
