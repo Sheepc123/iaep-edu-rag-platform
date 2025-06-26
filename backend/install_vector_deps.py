@@ -20,17 +20,18 @@ def main():
     """主安装函数"""
     print("🚀 开始安装向量数据库依赖...")
     
-    # 需要安装的包列表
+    # 需要安装的包列表（按依赖顺序）
     packages = [
-        "chromadb==0.4.18",
-        "sentence-transformers==2.2.2", 
-        "openai==1.3.7",
         "numpy==1.24.3",
         "scikit-learn==1.3.2",
+        "huggingface-hub==0.17.3",
+        "sentence-transformers==2.2.2",
+        "chromadb==0.4.15",
         "jieba==0.42.1",
+        "openai==1.3.7",
         "langchain==0.0.350",
     ]
-    
+
     success_count = 0
     failed_packages = []
     

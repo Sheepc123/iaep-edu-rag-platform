@@ -13,6 +13,7 @@ from app.schemas.knowledge_base import (
     KnowledgeDocumentList, KnowledgeSearchResult, UploadDocumentResponse,
     KnowledgeSearchRequest, DeleteDocumentResponse
 )
+from app.services.vector_service_simple import get_simple_vector_service
 
 router = APIRouter()
 

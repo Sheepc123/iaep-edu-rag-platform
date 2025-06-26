@@ -17,6 +17,7 @@ from app.schemas.knowledge_base import (
     KnowledgeSearchResult, UploadDocumentResponse
 )
 from app.services.document_processor import DocumentProcessor
+from app.services.vector_service_simple import get_simple_vector_service
 from app.core.config import FileConfig
 
 
@@ -26,6 +27,7 @@ class TeacherKnowledgeService:
     def __init__(self, db: Session):
         self.db = db
         self.document_processor = DocumentProcessor()
+        self.vector_service = get_simple_vector_service()
         self.upload_dir = FileConfig.get_upload_dir()
 
         # 确保知识库上传目录存在
@@ -102,7 +104,34 @@ class TeacherKnowledgeService:
             self.db.add(doc_record)
             self.db.commit()
             self.db.refresh(doc_record)
-            
+
+            # 异步向量化文档（不阻塞上传流程）
+            try:
+                if self.vector_service.is_available():
+                    vector_metadata = {
+                        "category": category,
+                        "tags": tags,
+                        "file_type": file_extension,
+                        "upload_time": doc_record.upload_time.isoformat() if doc_record.upload_time else None
+                    }
+
+                    success = self.vector_service.add_document(
+                        doc_id=doc_record.id,
+                        title=title,
+                        content=document_info.get("text_content", ""),
+                        metadata=vector_metadata
+                    )
+
+                    if success:
+                        print(f"✅ 文档 {doc_record.id} 向量化成功")
+                    else:
+                        print(f"⚠️  文档 {doc_record.id} 向量化失败")
+                else:
+                    print("⚠️  向量服务不可用，跳过向量化")
+            except Exception as e:
+                print(f"⚠️  文档向量化异常: {e}")
+                # 向量化失败不影响文档上传
+
             return UploadDocumentResponse(
                 success=True,
                 document_id=doc_record.id,
@@ -336,7 +365,19 @@ class TeacherKnowledgeService:
             # 软删除
             doc.status = 'deleted'
             self.db.commit()
-            
+
+            # 删除对应的向量数据
+            try:
+                if self.vector_service.is_available():
+                    vector_deleted = self.vector_service.delete_document(document_id)
+                    if vector_deleted:
+                        print(f"✅ 文档 {document_id} 向量数据删除成功")
+                    else:
+                        print(f"⚠️  文档 {document_id} 向量数据删除失败")
+            except Exception as e:
+                print(f"⚠️  删除向量数据异常: {e}")
+                # 向量删除失败不影响文档删除
+
             return True
             
         except HTTPException:

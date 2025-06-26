@@ -11,7 +11,7 @@ class VectorConfig(BaseSettings):
     
     # Chroma数据库配置
     CHROMA_PERSIST_DIRECTORY: str = "data/chroma_db"
-    CHROMA_COLLECTION_NAME: str = "teacher_knowledge_docs"
+    CHROMA_COLLECTION_NAME: str = "teacher_knowledge_docs_v2"
     
     # 嵌入模型配置
     EMBEDDING_MODEL: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
