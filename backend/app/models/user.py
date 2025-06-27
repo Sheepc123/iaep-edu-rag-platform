@@ -110,6 +110,7 @@ class UserSession(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # 会话信息
+    session_token = Column(String(255), unique=True, nullable=False)
     refresh_token = Column(String(500), nullable=False)
     device_info = Column(String(200), nullable=True)
     ip_address = Column(String(45), nullable=True)

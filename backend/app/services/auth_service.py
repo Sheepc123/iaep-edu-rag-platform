@@ -254,20 +254,24 @@ class AuthService:
         self.db.add(profile)
         self.db.commit()
     
-    def _create_user_session(self, user_id: int, refresh_token: str, 
+    def _create_user_session(self, user_id: int, refresh_token: str,
                            device_info: Optional[str], remember_me: bool) -> UserSession:
         """创建用户会话"""
         expires_days = settings.REFRESH_TOKEN_EXPIRE_DAYS if remember_me else 1
         expires_at = datetime.utcnow() + timedelta(days=expires_days)
-        
+
+        # 生成会话令牌
+        session_token = secrets.token_urlsafe(32)
+
         session = UserSession(
             user_id=user_id,
+            session_token=session_token,
             refresh_token=refresh_token,
             device_info=device_info,
             expires_at=expires_at,
             is_active=True
         )
-        
+
         self.db.add(session)
         self.db.commit()
         return session

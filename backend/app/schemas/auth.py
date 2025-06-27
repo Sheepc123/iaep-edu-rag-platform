@@ -65,7 +65,7 @@ class UserInfo(BaseModel):
     id: int = Field(..., description="用户ID")
     username: str = Field(..., description="用户名")
     email: str = Field(..., description="邮箱")
-    full_name: str = Field(..., description="真实姓名")
+    full_name: Optional[str] = Field(None, description="真实姓名")
     phone: Optional[str] = Field(None, description="手机号")
     avatar: Optional[str] = Field(None, description="头像URL")
     role: str = Field(..., description="用户角色")

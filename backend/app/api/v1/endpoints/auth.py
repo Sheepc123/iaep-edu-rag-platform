@@ -113,9 +113,13 @@ async def login(
     except HTTPException as e:
         raise e
     except Exception as e:
+        # 临时显示详细错误信息用于调试
+        import traceback
+        error_detail = f"登录失败: {str(e)}\n{traceback.format_exc()}"
+        print(f"Login error: {error_detail}")  # 打印到控制台
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="登录失败，请稍后重试"
+            detail=f"登录失败: {str(e)}"
         )
 
 
