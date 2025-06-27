@@ -28,7 +28,10 @@ class Exercise(Base):
     
     # 创建者
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    
+
+    # 课程关联（可选）
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=True)
+
     # 统计信息
     total_questions = Column(Integer, default=0)
     total_attempts = Column(Integer, default=0)
@@ -43,6 +46,7 @@ class Exercise(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # 关联关系
+    course = relationship("Course", back_populates="exercises")
     questions = relationship("Question", back_populates="exercise")
     attempts = relationship("ExerciseAttempt", back_populates="exercise")
 

@@ -23,7 +23,8 @@ import {
   Share2,
   Edit3,
   BarChart3,
-  Settings
+  Settings,
+  Plus
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -342,9 +343,10 @@ export const TeacherCourseDetail = () => {
             {/* 左侧主要内容 */}
             <div className="lg:col-span-2">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="overview">课程概述</TabsTrigger>
                   <TabsTrigger value="curriculum">课程内容</TabsTrigger>
+                  <TabsTrigger value="exercises">课程练习</TabsTrigger>
                   <TabsTrigger value="materials">课程资料</TabsTrigger>
                   <TabsTrigger value="reviews">学员评价</TabsTrigger>
                 </TabsList>
@@ -453,6 +455,43 @@ export const TeacherCourseDetail = () => {
                               </div>
                             </motion.div>
                           ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                </TabsContent>
+
+                {/* 课程练习 */}
+                <TabsContent value="exercises" className="space-y-6">
+                  <motion.div variants={cardVariants}>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <FileText className="w-5 h-5 mr-2 text-purple-600" />
+                            课程练习
+                          </div>
+                          <Button
+                            onClick={() => navigate(`/teacher/exercises/create?courseId=${courseId}`)}
+                            size="sm"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            创建练习
+                          </Button>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-center py-12">
+                          <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">暂无练习</h3>
+                          <p className="text-gray-500 mb-4">为课程添加练习，帮助学生巩固知识</p>
+                          <Button
+                            onClick={() => navigate(`/teacher/exercises/create?courseId=${courseId}`)}
+                            variant="outline"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            创建第一个练习
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>

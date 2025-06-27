@@ -546,6 +546,13 @@ export const courseAPI = {
     });
   },
 
+  // 获取课程练习
+  async getCourseExercises(courseId: number): Promise<{exercises: Exercise[]}> {
+    return apiRequest(`/courses/${courseId}/exercises`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
   // 获取课程统计信息
   async getCourseStatistics(): Promise<{
     total_courses: number;
@@ -698,6 +705,7 @@ export interface Exercise {
   subject: string;
   difficulty: 'easy' | 'medium' | 'hard';
   time_limit?: number;
+  course_id?: number;
   total_questions: number;
   total_attempts: number;
   average_score: number;
@@ -739,6 +747,7 @@ export interface ExerciseCreateRequest {
   subject: string;
   difficulty: 'easy' | 'medium' | 'hard';
   time_limit?: number;
+  course_id?: number;
   is_published?: boolean;
 }
 

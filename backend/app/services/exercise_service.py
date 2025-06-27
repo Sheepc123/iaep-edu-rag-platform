@@ -47,6 +47,7 @@ class ExerciseService:
             subject=exercise_data.subject,
             difficulty=exercise_data.difficulty,
             time_limit=exercise_data.time_limit,
+            course_id=exercise_data.course_id,
             created_by=creator_id,
             is_published=exercise_data.is_published
         )
@@ -153,7 +154,19 @@ class ExerciseService:
         self.db.commit()
         
         return True
-    
+
+    def get_course_exercises(self, course_id: int) -> List[Exercise]:
+        """获取指定课程的练习列表"""
+        exercises = self.db.query(Exercise).filter(
+            and_(
+                Exercise.course_id == course_id,
+                Exercise.is_active == True,
+                Exercise.is_published == True
+            )
+        ).order_by(desc(Exercise.created_at)).all()
+
+        return exercises
+
     # ==================== 题目管理 ====================
     
     def create_question(self, question_data: QuestionCreate, creator_id: int) -> Question:

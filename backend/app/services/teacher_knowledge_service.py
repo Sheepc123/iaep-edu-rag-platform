@@ -17,17 +17,46 @@ from app.schemas.knowledge_base import (
     KnowledgeSearchResult, UploadDocumentResponse
 )
 from app.services.document_processor import DocumentProcessor
-from app.services.vector_service_simple import get_simple_vector_service
+from app.services.vector_service_deepseek import get_deepseek_vector_service
 from app.core.config import FileConfig
+import time
+import threading
+
+
+def vectorize_with_timeout(vector_service, doc_id, title, content, metadata, timeout=180):
+    """带超时的向量化函数"""
+    result = {"success": False, "error": None}
+
+    def vectorize_worker():
+        try:
+            success = vector_service.add_document(doc_id, title, content, metadata)
+            result["success"] = success
+        except Exception as e:
+            result["error"] = str(e)
+            result["success"] = False
+
+    # 启动向量化线程
+    worker_thread = threading.Thread(target=vectorize_worker)
+    worker_thread.daemon = True
+    worker_thread.start()
+
+    # 等待完成或超时
+    worker_thread.join(timeout=timeout)
+
+    if worker_thread.is_alive():
+        print(f"⚠️  文档 {doc_id} 向量化超时 ({timeout}秒)，自动停止")
+        return False
+
+    return result["success"]
 
 
 class TeacherKnowledgeService:
     """教师知识库服务"""
-    
+
     def __init__(self, db: Session):
         self.db = db
         self.document_processor = DocumentProcessor()
-        self.vector_service = get_simple_vector_service()
+        self.vector_service = get_deepseek_vector_service()
         self.upload_dir = FileConfig.get_upload_dir()
 
         # 确保知识库上传目录存在
@@ -105,31 +134,35 @@ class TeacherKnowledgeService:
             self.db.commit()
             self.db.refresh(doc_record)
 
-            # 异步向量化文档（不阻塞上传流程）
+            # DeepSeek向量化文档（不阻塞上传流程）
             try:
                 if self.vector_service.is_available():
                     vector_metadata = {
                         "category": category,
                         "tags": tags,
                         "file_type": file_extension,
-                        "upload_time": doc_record.upload_time.isoformat() if doc_record.upload_time else None
+                        "teacher_id": teacher_id,
+                        "upload_time": doc_record.upload_time.isoformat() if doc_record.upload_time else None,
+                        "enhanced_by": "deepseek"
                     }
 
-                    success = self.vector_service.add_document(
+                    success = vectorize_with_timeout(
+                        vector_service=self.vector_service,
                         doc_id=doc_record.id,
                         title=title,
                         content=document_info.get("text_content", ""),
-                        metadata=vector_metadata
+                        metadata=vector_metadata,
+                        timeout=180  # 3分钟超时
                     )
 
                     if success:
-                        print(f"✅ 文档 {doc_record.id} 向量化成功")
+                        print(f"✅ 文档 {doc_record.id} DeepSeek向量化成功")
                     else:
-                        print(f"⚠️  文档 {doc_record.id} 向量化失败")
+                        print(f"⚠️  文档 {doc_record.id} DeepSeek向量化失败")
                 else:
-                    print("⚠️  向量服务不可用，跳过向量化")
+                    print("⚠️  DeepSeek向量服务不可用，跳过向量化")
             except Exception as e:
-                print(f"⚠️  文档向量化异常: {e}")
+                print(f"⚠️  DeepSeek文档向量化异常: {e}")
                 # 向量化失败不影响文档上传
 
             return UploadDocumentResponse(

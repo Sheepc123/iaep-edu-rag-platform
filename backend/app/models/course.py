@@ -45,6 +45,7 @@ class Course(Base):
     # 关联关系
     lessons = relationship("Lesson", back_populates="course")
     enrollments = relationship("CourseEnrollment", back_populates="course")
+    exercises = relationship("Exercise", back_populates="course")
 
 
 class Lesson(Base):

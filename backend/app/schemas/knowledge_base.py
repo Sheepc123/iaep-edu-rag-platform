@@ -89,3 +89,23 @@ class DeleteDocumentResponse(BaseModel):
     """删除文档响应模式"""
     success: bool
     message: str
+
+
+class SemanticSearchRequest(BaseModel):
+    """语义搜索请求模式"""
+    query: str = Field(..., description="搜索查询")
+    top_k: int = Field(5, description="返回结果数量")
+    category: Optional[str] = Field(None, description="分类过滤")
+    tags: Optional[List[str]] = Field(None, description="标签过滤")
+
+
+class SemanticSearchResult(BaseModel):
+    """语义搜索结果模式"""
+    document_id: int = Field(..., description="文档ID")
+    title: str = Field(..., description="文档标题")
+    content: str = Field(..., description="文档内容片段")
+    similarity: float = Field(..., description="相似度分数")
+    category: Optional[str] = Field(None, description="文档分类")
+    tags: Optional[List[str]] = Field(None, description="文档标签")
+    file_type: Optional[str] = Field(None, description="文件类型")
+    enhanced_by: Optional[str] = Field(None, description="增强方式")

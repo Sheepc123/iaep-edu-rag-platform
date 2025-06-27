@@ -10,7 +10,7 @@ class VectorConfig(BaseSettings):
     """向量数据库配置"""
     
     # Chroma数据库配置
-    CHROMA_PERSIST_DIRECTORY: str = "data/chroma_db"
+    CHROMA_PERSIST_DIRECTORY: str = "data/vector_db"
     CHROMA_COLLECTION_NAME: str = "teacher_knowledge_docs_v2"
     
     # 嵌入模型配置
@@ -46,5 +46,8 @@ def get_vector_config() -> VectorConfig:
 
 def ensure_chroma_directory():
     """确保Chroma数据库目录存在"""
-    os.makedirs(vector_config.CHROMA_PERSIST_DIRECTORY, exist_ok=True)
-    return vector_config.CHROMA_PERSIST_DIRECTORY
+    # 使用绝对路径，基于当前文件位置
+    current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    persist_dir = os.path.join(current_dir, "data", "vector_db")
+    os.makedirs(persist_dir, exist_ok=True)
+    return persist_dir

@@ -16,6 +16,7 @@ from ....schemas.course import (
 )
 from ....services.course_service import CourseService
 from ....services.course_service import LessonService
+from ....services.exercise_service import ExerciseService
 from ....models.user import User
 from ...dependencies import (
     get_current_active_user, get_current_student, get_current_teacher,
@@ -761,4 +762,30 @@ async def get_teacher_course_statistics(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取统计信息失败"
+        )
+
+
+# ==================== 课程练习管理端点 ====================
+
+@router.get("/{course_id}/exercises", summary="获取课程练习列表")
+async def get_course_exercises(
+    course_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    获取指定课程的练习列表
+    """
+    try:
+        exercise_service = ExerciseService(db)
+        exercises = exercise_service.get_course_exercises(course_id)
+        return {"exercises": exercises}
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"获取课程练习失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取课程练习失败"
         )

@@ -23,6 +23,9 @@ from app.core.vector_config import get_vector_config, ensure_chroma_directory
 from app.core.config import settings
 
 
+
+
+
 class DeepSeekVectorService:
     """基于DeepSeek的混合向量数据库服务"""
     
@@ -216,36 +219,36 @@ class DeepSeekVectorService:
         if not self.is_available():
             logger.warning("DeepSeek向量服务不可用，跳过文档向量化")
             return False
-        
+
         try:
             # 分块处理长文本
             chunks = self._split_text(content)
             all_texts = [title] + chunks
-            
+
             # 检查是否需要训练TF-IDF
             need_training = not hasattr(self.tfidf_vectorizer, 'vocabulary_')
-            
+
             embeddings = []
             chunk_ids = []
             chunk_texts = []
             chunk_metadatas = []
-            
+
             for i, chunk in enumerate(chunks):
                 if not chunk.strip():
                     continue
-                
+
                 # 生成增强向量
                 if need_training and i == 0:
                     embedding = self._get_enhanced_embedding(chunk, all_texts)
                     need_training = False
                 else:
                     embedding = self._get_enhanced_embedding(chunk)
-                
+
                 embeddings.append(embedding)
                 chunk_id = f"doc_{doc_id}_chunk_{i}"
                 chunk_ids.append(chunk_id)
                 chunk_texts.append(chunk)
-                
+
                 chunk_metadata = {
                     "doc_id": doc_id,
                     "title": title,
@@ -255,11 +258,15 @@ class DeepSeekVectorService:
                     **(metadata or {})
                 }
                 chunk_metadatas.append(chunk_metadata)
-            
+
+                # 每处理3个块输出一次进度
+                if (i + 1) % 3 == 0:
+                    logger.info(f"文档 {doc_id} 向量化进度: {i+1}/{len(chunks)} 个块")
+
             if not embeddings:
                 logger.warning(f"文档 {doc_id} 没有有效内容，跳过向量化")
                 return False
-            
+
             # 添加到向量数据库
             self.collection.add(
                 embeddings=embeddings,
@@ -267,10 +274,10 @@ class DeepSeekVectorService:
                 metadatas=chunk_metadatas,
                 ids=chunk_ids
             )
-            
+
             logger.info(f"文档 {doc_id} DeepSeek增强向量化完成，生成 {len(embeddings)} 个向量块")
             return True
-            
+
         except Exception as e:
             logger.error(f"DeepSeek文档向量化失败: {e}")
             return False

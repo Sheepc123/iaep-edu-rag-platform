@@ -69,6 +69,37 @@ export interface KnowledgeStats {
   avg_document_size: number;
 }
 
+// 语义搜索相关接口
+export interface SemanticSearchRequest {
+  query: string;
+  top_k?: number;
+  category?: string;
+  tags?: string[];
+}
+
+export interface SemanticSearchResult {
+  document_id: number;
+  title: string;
+  content: string;
+  similarity: number;
+  category?: string;
+  tags?: string[];
+  file_type?: string;
+  enhanced_by?: string;
+}
+
+export interface VectorStats {
+  available: boolean;
+  stats?: {
+    total_vectors: number;
+    collection_name: string;
+    embedding_model: string;
+    embedding_dimension: number;
+    enhancement: string;
+  };
+  message?: string;
+}
+
 export interface DocumentCategory {
   value: string;
   label: string;
@@ -212,6 +243,42 @@ export class KnowledgeAPI {
 
     if (!response.ok) {
       throw new Error(`获取统计信息失败: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * DeepSeek语义搜索
+   */
+  static async semanticSearch(request: SemanticSearchRequest): Promise<SemanticSearchResult[]> {
+    const response = await fetch(`${API_BASE_URL}/semantic-search`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`语义搜索失败: ${response.status} - ${errorText}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * 获取向量数据库统计信息
+   */
+  static async getVectorStats(): Promise<VectorStats> {
+    const response = await fetch(`${API_BASE_URL}/vector-stats`, {
+      headers: getAuthHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error(`获取向量统计失败: ${response.status}`);
     }
 
     return await response.json();

@@ -12,7 +12,8 @@ import {
   Download,
   Plus,
   Sparkles,
-  BarChart3
+  BarChart3,
+  Brain
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +22,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { DocumentUpload } from "@/components/ui/DocumentUpload";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TeacherLayout from "@/components/layouts/TeacherLayout";
+import SemanticSearch from "@/components/SemanticSearch";
 import {
   KnowledgeDocument,
   KnowledgeDocumentResponse,
@@ -30,7 +33,7 @@ import {
   formatFileSize,
   formatUploadTime
 } from "@/types/knowledge";
-import KnowledgeAPI from "@/services/knowledgeAPI";
+import KnowledgeAPI, { SemanticSearchResult } from "@/services/knowledgeAPI";
 
 export const TeacherKnowledgeBase = () => {
   const { toast } = useToast();
@@ -48,6 +51,7 @@ export const TeacherKnowledgeBase = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [activeTab, setActiveTab] = useState('documents');
 
   // 页面大小
   const pageSize = 12;
@@ -291,9 +295,24 @@ export const TeacherKnowledgeBase = () => {
           </Card>
         </div>
 
-        {/* 搜索和筛选区域 */}
-        <Card className="mb-8">
-          <CardContent className="p-6">
+        {/* 标签页导航 */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="documents" className="flex items-center space-x-2">
+              <FileText className="w-4 h-4" />
+              <span>文档管理</span>
+            </TabsTrigger>
+            <TabsTrigger value="semantic-search" className="flex items-center space-x-2">
+              <Brain className="w-4 h-4" />
+              <span>AI语义搜索</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* 文档管理标签页 */}
+          <TabsContent value="documents" className="space-y-6">
+            {/* 搜索和筛选区域 */}
+            <Card>
+              <CardContent className="p-6">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
@@ -457,6 +476,19 @@ export const TeacherKnowledgeBase = () => {
             )}
           </>
         )}
+          </TabsContent>
+
+          {/* AI语义搜索标签页 */}
+          <TabsContent value="semantic-search" className="space-y-6">
+            <SemanticSearch
+              onResultClick={(result) => {
+                // 处理搜索结果点击，可以跳转到文档详情或下载
+                console.log('点击搜索结果:', result);
+                // 这里可以添加跳转到文档详情的逻辑
+              }}
+            />
+          </TabsContent>
+        </Tabs>
 
         {/* 上传模态框 */}
         {showUploadModal && (

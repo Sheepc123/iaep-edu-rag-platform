@@ -136,6 +136,7 @@ class ExerciseBase(BaseModel):
     subject: str = Field(..., max_length=50, description="科目")
     difficulty: DifficultyLevel = Field(DifficultyLevel.MEDIUM, description="难度级别")
     time_limit: Optional[int] = Field(None, ge=1, description="时间限制(分钟)")
+    course_id: Optional[int] = Field(None, description="关联课程ID")
 
 
 class ExerciseCreate(ExerciseBase):

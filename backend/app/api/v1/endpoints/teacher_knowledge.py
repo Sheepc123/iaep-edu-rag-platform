@@ -11,8 +11,9 @@ from app.models.user import User
 from app.services.teacher_knowledge_service import TeacherKnowledgeService
 from app.schemas.knowledge_base import (
     KnowledgeDocumentList, KnowledgeSearchResult, UploadDocumentResponse,
-    KnowledgeSearchRequest, DeleteDocumentResponse
+    KnowledgeSearchRequest, DeleteDocumentResponse, SemanticSearchRequest, SemanticSearchResult
 )
+from app.services.vector_service_deepseek import get_deepseek_vector_service
 from app.services.vector_service_simple import get_simple_vector_service
 
 router = APIRouter()
@@ -229,3 +230,107 @@ async def get_knowledge_stats(
         "category_stats": category_stats,
         "avg_document_size": total_size // total_docs if total_docs > 0 else 0
     }
+
+
+@router.post("/semantic-search", response_model=List[SemanticSearchResult], summary="DeepSeek语义搜索")
+async def semantic_search(
+    request: SemanticSearchRequest,
+    current_user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db)
+):
+    """
+    DeepSeek增强的语义搜索
+
+    - **query**: 搜索查询文本
+    - **top_k**: 返回结果数量（默认5）
+    - **category**: 分类过滤（可选）
+    - **tags**: 标签过滤（可选）
+
+    使用DeepSeek AI进行关键词提取，结合TF-IDF向量化实现高质量语义搜索
+    """
+    vector_service = get_deepseek_vector_service()
+
+    if not vector_service.is_available():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="DeepSeek语义搜索服务不可用，请检查API配置"
+        )
+
+    # 构建元数据过滤条件
+    filter_metadata = {}
+
+    # 临时注释掉教师ID过滤用于调试
+    # filter_metadata = {"teacher_id": current_user.id}
+
+    if request.category:
+        filter_metadata["category"] = request.category
+
+    # 执行语义搜索
+    try:
+        results = vector_service.search_similar(
+            query=request.query,
+            top_k=request.top_k,
+            filter_metadata=filter_metadata
+        )
+
+        # 转换为响应格式
+        search_results = []
+        for result in results:
+            metadata = result["metadata"]
+
+            # 解析标签
+            tags = None
+            if metadata.get("tags"):
+                if isinstance(metadata["tags"], str):
+                    tags = [tag.strip() for tag in metadata["tags"].split(",") if tag.strip()]
+                elif isinstance(metadata["tags"], list):
+                    tags = metadata["tags"]
+
+            search_results.append(SemanticSearchResult(
+                document_id=metadata["doc_id"],
+                title=metadata.get("title", "未知标题"),
+                content=result["content"],
+                similarity=result["similarity"],
+                category=metadata.get("category"),
+                tags=tags,
+                file_type=metadata.get("file_type"),
+                enhanced_by=metadata.get("enhanced_by", "deepseek")
+            ))
+
+        return search_results
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"语义搜索失败: {str(e)}"
+        )
+
+
+@router.get("/vector-stats", summary="获取向量数据库统计")
+async def get_vector_stats(
+    current_user: User = Depends(get_current_teacher)
+):
+    """
+    获取向量数据库统计信息
+
+    返回向量集合的统计数据，包括总向量数、模型信息等
+    """
+    vector_service = get_deepseek_vector_service()
+
+    if not vector_service.is_available():
+        return {
+            "available": False,
+            "message": "DeepSeek向量服务不可用"
+        }
+
+    try:
+        stats = vector_service.get_collection_stats()
+        return {
+            "available": True,
+            "stats": stats
+        }
+    except Exception as e:
+        return {
+            "available": False,
+            "message": f"获取统计信息失败: {str(e)}"
+        }

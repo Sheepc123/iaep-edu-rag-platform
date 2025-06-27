@@ -187,7 +187,7 @@ const WelcomeSection = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
             >
-              {getGreeting()}，张同学！
+              {getGreeting()}，同学！
             </motion.h1>
             <motion.p
               className="text-blue-100 text-lg"

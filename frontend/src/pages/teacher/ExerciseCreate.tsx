@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import TeacherLayout from "@/components/layouts/TeacherLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -76,7 +76,11 @@ interface Question {
 
 export const TeacherExerciseCreate: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  // 从URL参数获取课程ID
+  const courseId = searchParams.get('courseId');
 
   // 练习基本信息
   const [exerciseData, setExerciseData] = useState<ExerciseCreateRequest>({
@@ -86,6 +90,7 @@ export const TeacherExerciseCreate: React.FC = () => {
     subject: "",
     difficulty: "medium",
     time_limit: undefined,
+    course_id: courseId ? parseInt(courseId) : undefined,
     is_published: false
   });
 
@@ -286,7 +291,12 @@ export const TeacherExerciseCreate: React.FC = () => {
         description: publish ? "练习创建并发布成功" : "练习创建成功"
       });
 
-      navigate("/teacher/exercises");
+      // 如果有课程ID，跳转回课程详情页，否则跳转到练习列表
+      if (courseId) {
+        navigate(`/teacher/courses/${courseId}`);
+      } else {
+        navigate("/teacher/exercises");
+      }
 
     } catch (error: any) {
       console.error("保存练习失败:", error);
@@ -331,7 +341,7 @@ export const TeacherExerciseCreate: React.FC = () => {
             <div className="flex items-center">
               <Button
                 variant="ghost"
-                onClick={() => navigate("/teacher/exercises")}
+                onClick={() => courseId ? navigate(`/teacher/courses/${courseId}`) : navigate("/teacher/exercises")}
                 className="mr-4"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
