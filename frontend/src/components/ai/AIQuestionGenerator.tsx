@@ -418,19 +418,29 @@ const QuestionPreview: React.FC<QuestionPreviewProps> = ({
               
               {question.question_type === 'multiple_choice' && question.options && (
                 <div className="space-y-2 mb-3">
-                  {question.options.map((option, idx) => (
-                    <div key={idx} className="flex items-center text-sm">
-                      <span className={`mr-2 ${option === question.correct_answer ? 'text-green-600 font-medium' : 'text-gray-600'}`}>
-                        {String.fromCharCode(65 + idx)}.
-                      </span>
-                      <span className={option === question.correct_answer ? 'text-green-600 font-medium' : 'text-gray-700'}>
-                        {option}
-                      </span>
-                      {option === question.correct_answer && (
-                        <CheckCircle className="w-4 h-4 ml-2 text-green-600" />
-                      )}
-                    </div>
-                  ))}
+                  {(() => {
+                    // 处理选项格式：支持数组和字典两种格式
+                    const options = Array.isArray(question.options)
+                      ? question.options.map((opt, idx) => ({ key: String.fromCharCode(65 + idx), value: opt }))
+                      : Object.entries(question.options).map(([key, value]) => ({ key, value }));
+
+                    return options.map(({ key, value }) => {
+                      const isCorrect = question.correct_answer === key || question.correct_answer === value;
+                      return (
+                        <div key={key} className="flex items-center text-sm">
+                          <span className={`mr-2 ${isCorrect ? 'text-green-600 font-medium' : 'text-gray-600'}`}>
+                            {key}.
+                          </span>
+                          <span className={isCorrect ? 'text-green-600 font-medium' : 'text-gray-700'}>
+                            {value}
+                          </span>
+                          {isCorrect && (
+                            <CheckCircle className="w-4 h-4 ml-2 text-green-600" />
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               )}
               

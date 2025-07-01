@@ -28,8 +28,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TeacherLayout from "@/components/layouts/TeacherLayout";
-import { teacherAPI, userAPI, Course } from "@/services/api";
+import { teacherAPI, userAPI, authAPI, Course } from "@/services/api";
 import { useToast } from "@/components/ui/use-toast";
+import { AvatarUpload } from "@/components/ui/avatar-upload";
 
 interface TeacherProfile {
   name: string;
@@ -202,6 +203,13 @@ export const TeacherProfile = () => {
     fetchUserProfile();
   }, []);
 
+  // 处理头像更新
+  const handleAvatarChange = (newAvatarUrl: string) => {
+    const updatedProfile = { ...profile, avatar: newAvatarUrl };
+    setProfile(updatedProfile);
+    setEditForm(updatedProfile);
+  };
+
   // 动画配置
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -250,6 +258,11 @@ export const TeacherProfile = () => {
       setProfile(editForm);
       setIsEditing(false);
       setSaveMessage({ type: 'success', text: '个人信息更新成功！' });
+
+      // 触发自定义事件通知其他组件用户信息已更新
+      window.dispatchEvent(new CustomEvent('userProfileUpdated', {
+        detail: { full_name: editForm.name }
+      }));
 
       toast({
         title: "更新成功",
@@ -384,17 +397,13 @@ export const TeacherProfile = () => {
                 <motion.div className="lg:col-span-1" variants={cardVariants}>
             <Card className="border-0 shadow-lg">
               <CardContent className="p-8 text-center">
-                <div className="relative inline-block mb-6">
-                  <img
-                    src={profile.avatar}
-                    alt="头像"
-                    className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                <div className="mb-6">
+                  <AvatarUpload
+                    currentAvatar={profile.avatar}
+                    onAvatarChange={handleAvatarChange}
+                    size="md"
+                    disabled={false}
                   />
-                  {isEditing && (
-                    <button className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors">
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                  )}
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">{profile.name}</h2>
                 <p className="text-gray-600 mb-1">工号：{profile.teacherId}</p>

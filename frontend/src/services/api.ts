@@ -3,7 +3,7 @@
  */
 
 // API基础配置
-const API_BASE_URL = 'http://127.0.0.1:8000/api/v1';
+const API_BASE_URL = 'http://localhost:8000/api/v1';
 
 // 请求配置
 const defaultHeaders = {
@@ -609,7 +609,7 @@ export interface AIConversationRequest {
 export interface GeneratedQuestion {
   question_text: string;
   question_type: 'multiple_choice' | 'fill_blank' | 'essay';
-  options?: string[];
+  options?: string[] | Record<string, string>;
   correct_answer: string;
   explanation: string;
   points: number;
@@ -979,11 +979,13 @@ export const exerciseAPI = {
     is_submitted: boolean;
     started_at: string;
     submitted_at?: string;
+    completed_at?: string;
     exercise: Exercise;
     answers: Array<{
       id: number;
       question_id: number;
-      answer: string;
+      answer_content: string;
+      answer?: string; // 兼容旧字段名
       is_correct: boolean;
       points_earned: number;
       time_spent: number;
@@ -991,6 +993,30 @@ export const exerciseAPI = {
     }>;
   }> {
     return apiRequest(`/exercises/attempts/${attemptId}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 获取我的练习记录
+  async getMyAttempts(exerciseId?: number): Promise<Array<{
+    id: number;
+    exercise_id: number;
+    student_id: number;
+    total_questions: number;
+    answered_questions: number;
+    correct_answers: number;
+    score: number;
+    max_score: number;
+    accuracy_rate: number;
+    time_spent: number;
+    is_completed: boolean;
+    is_submitted: boolean;
+    started_at: string;
+    submitted_at?: string;
+    completed_at?: string;
+  }>> {
+    const params = exerciseId ? `?exercise_id=${exerciseId}` : '';
+    return apiRequest(`/exercises/my-attempts${params}`, {
       headers: getAuthHeaders(),
     });
   },
@@ -1134,10 +1160,13 @@ export const teacherAPI = {
   }> {
     try {
       const exercises = await exerciseAPI.getExercises({ limit: 1000 });
-      const publishedCount = exercises.exercises.filter(ex => ex.is_published).length;
+
+      // 安全地访问exercises数据
+      const exerciseList = exercises?.exercises || [];
+      const publishedCount = exerciseList.filter(ex => ex.is_published).length;
 
       return {
-        total_exercises: exercises.total,
+        total_exercises: exercises?.total || exerciseList.length,
         published_exercises: publishedCount,
         total_attempts: 0, // 需要后端支持
         average_score: 0 // 需要后端支持
@@ -1265,6 +1294,64 @@ export const teacherAPI = {
   // 删除课时
   async deleteLesson(lessonId: number): Promise<{ message: string }> {
     return apiRequest(`/courses/lessons/${lessonId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 获取课程学生列表
+  async getCourseStudents(courseId: number): Promise<Array<{
+    id: number;
+    username: string;
+    full_name: string;
+    email: string;
+    avatar_url?: string;
+    enrolled_at: string;
+    progress_percentage: number;
+    completed_lessons: number;
+    total_study_time: number;
+    is_completed: boolean;
+    last_accessed_at?: string;
+  }>> {
+    return apiRequest(`/courses/teacher/courses/${courseId}/students`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 移除课程学生
+  async removeCourseStudent(courseId: number, studentId: number): Promise<{ message: string; success: boolean }> {
+    return apiRequest(`/courses/teacher/courses/${courseId}/students/${studentId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 获取课程文件列表
+  async getCourseFiles(courseId: number): Promise<Array<{
+    id: string;
+    name: string;
+    size: number;
+    type: string;
+    url: string;
+    uploaded_at: string;
+  }>> {
+    return apiRequest(`/courses/teacher/courses/${courseId}/files`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 上传课程文件
+  async uploadCourseFile(courseId: number, fileInfo: any): Promise<any> {
+    return apiRequest(`/courses/teacher/courses/${courseId}/files`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(fileInfo),
+    });
+  },
+
+  // 删除课程文件
+  async deleteCourseFile(courseId: number, fileId: string): Promise<{ message: string; success: boolean }> {
+    return apiRequest(`/courses/teacher/courses/${courseId}/files/${fileId}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });

@@ -29,9 +29,9 @@ def create_test_enrollments():
         existing_enrollments = db.query(CourseEnrollment).filter(
             CourseEnrollment.course_id == 1
         ).count()
-
-        if existing_enrollments >= 3:
-            print(f"课程已有 {existing_enrollments} 个注册记录，足够测试使用")
+        
+        if existing_enrollments > 0:
+            print(f"课程已有 {existing_enrollments} 个注册记录")
             return
         
         # 查找学生用户

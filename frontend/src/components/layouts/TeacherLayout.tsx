@@ -90,6 +90,20 @@ const Sidebar = () => {
     };
 
     checkAuth();
+
+    // 监听用户信息更新事件
+    const handleUserProfileUpdate = (e: CustomEvent) => {
+      const { full_name } = e.detail;
+      if (full_name && userInfo) {
+        setUserInfo({ ...userInfo, full_name });
+      }
+    };
+
+    window.addEventListener('userProfileUpdated', handleUserProfileUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('userProfileUpdated', handleUserProfileUpdate as EventListener);
+    };
   }, [navigate, toast]);
 
   // 显示退出确认对话框

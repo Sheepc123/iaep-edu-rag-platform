@@ -9,11 +9,12 @@ import {
   LogOut,
   User,
 } from "lucide-react";
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FloatingAIButton } from "@/components/ai/FloatingAIButton";
 import { motion, AnimatePresence } from "framer-motion";
+import { userAPI } from "@/services/api";
 
 interface StudentLayoutProps {
   children: ReactNode;
@@ -35,8 +36,71 @@ const StudentLayout = ({ children, fullScreen = false }: StudentLayoutProps) => 
 const Sidebar = () => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [userName, setUserName] = useState("学生");
+    const [userLoading, setUserLoading] = useState(true);
     const location = useLocation();
     const navigate = useNavigate();
+
+    // 获取用户信息
+    useEffect(() => {
+        const fetchUserInfo = async () => {
+            try {
+                // 确保有token才请求
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    setUserName("学生");
+                    setUserLoading(false);
+                    return;
+                }
+
+                const userInfo = await userAPI.getProfile();
+
+                // 验证用户角色，确保是学生
+                if (userInfo.role !== 'student') {
+                    console.warn('当前用户不是学生角色:', userInfo.role);
+                    setUserName("学生");
+                    setUserLoading(false);
+                    return;
+                }
+
+                // 优先使用 full_name，如果没有则使用 username
+                const displayName = userInfo.full_name || userInfo.username || "学生";
+                setUserName(displayName);
+            } catch (error) {
+                console.error('获取用户信息失败:', error);
+                // 如果获取失败，保持默认值"学生"
+                setUserName("学生");
+            } finally {
+                setUserLoading(false);
+            }
+        };
+
+        fetchUserInfo();
+
+        // 监听storage变化，当token变化时重新获取用户信息
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'access_token') {
+                setUserLoading(true);
+                fetchUserInfo();
+            }
+        };
+
+        // 监听用户信息更新事件
+        const handleUserProfileUpdate = (e: CustomEvent) => {
+            const { full_name } = e.detail;
+            if (full_name) {
+                setUserName(full_name);
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        window.addEventListener('userProfileUpdated', handleUserProfileUpdate as EventListener);
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            window.removeEventListener('userProfileUpdated', handleUserProfileUpdate as EventListener);
+        };
+    }, []);
 
     // 显示退出确认对话框
     const handleLogoutClick = () => {
@@ -108,7 +172,9 @@ const Sidebar = () => {
                     <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
                         <User className="w-5 h-5 text-gray-600" />
                     </div>
-                    <span className="ml-4 font-semibold text-gray-700">学生姓名</span>
+                    <span className="ml-4 font-semibold text-gray-700">
+                        {userLoading ? "加载中..." : userName}
+                    </span>
                 </div>
             </div>
         </div>

@@ -24,12 +24,17 @@ import {
   Edit3,
   BarChart3,
   Settings,
-  Plus
+  Plus,
+  Target,
+  TrendingUp,
+  Eye,
+  MoreVertical
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import { courseAPI, exerciseAPI, Course, Lesson, Exercise } from "@/services/api";
 
 // Animation variants
 const containerVariants = {
@@ -54,7 +59,7 @@ const cardVariants = {
     y: 0,
     scale: 1,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 100,
       damping: 15
     }
@@ -155,9 +160,10 @@ export const TeacherCourseDetail = () => {
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState("overview");
-  const [course] = useState(mockCourse);
-  const [lessons] = useState(mockLessons);
-  const [loading, setLoading] = useState(false);
+  const [course, setCourse] = useState<Course | null>(null);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // 获取课程数据
   useEffect(() => {
@@ -166,17 +172,25 @@ export const TeacherCourseDetail = () => {
 
       try {
         setLoading(true);
-        // 这里应该调用真实的API获取课程数据
-        // const courseData = await courseAPI.getCourse(parseInt(courseId));
-        // setCourse(courseData);
 
-        // 模拟API调用延迟
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // 获取课程基本信息
+        const courseData = await courseAPI.getCourse(parseInt(courseId));
+        setCourse(courseData);
+
+        // 获取课程课时
+        const lessonsData = await courseAPI.getCourseLessons(parseInt(courseId));
+        setLessons(lessonsData);
+
+        // 获取课程练习
+        const exercisesData = await courseAPI.getCourseExercises(parseInt(courseId));
+        setExercises(exercisesData.exercises);
+
       } catch (error) {
+        console.error('获取课程数据失败:', error);
         toast({
-          title: "错误",
-          description: "获取课程信息失败",
-          variant: "destructive"
+          title: "加载失败",
+          description: "无法加载课程数据，请刷新页面重试",
+          variant: "destructive",
         });
       } finally {
         setLoading(false);
@@ -209,10 +223,10 @@ export const TeacherCourseDetail = () => {
   };
 
   // 计算完成进度
-  const completedLessons = lessons.filter(lesson => lesson.isCompleted).length;
-  const progressPercentage = (completedLessons / lessons.length) * 100;
+  const completedLessons = lessons.filter(lesson => lesson.is_completed).length;
+  const progressPercentage = lessons.length > 0 ? (completedLessons / lessons.length) * 100 : 0;
 
-  if (loading) {
+  if (loading || !course) {
     return (
       <TeacherLayout>
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6">
@@ -264,7 +278,7 @@ export const TeacherCourseDetail = () => {
               <div className="relative">
                 <div className="h-64 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600">
                   <img
-                    src={course.coverImage}
+                    src={course.cover_image || "https://via.placeholder.com/800x400"}
                     alt={course.title}
                     className="w-full h-full object-cover opacity-20"
                   />
@@ -280,15 +294,15 @@ export const TeacherCourseDetail = () => {
                         <Badge className="bg-white/20 text-white border-white/30">
                           {course.difficulty}
                         </Badge>
-                        <Badge className={course.isPublished ? "bg-green-500" : "bg-gray-500"}>
-                          {course.isPublished ? "已发布" : "草稿"}
+                        <Badge className={course.is_published ? "bg-green-500" : "bg-gray-500"}>
+                          {course.is_published ? "已发布" : "草稿"}
                         </Badge>
                       </div>
                       <h1 className="text-3xl font-bold mb-3">{course.title}</h1>
                       <div className="flex items-center space-x-6 text-white/90">
                         <div className="flex items-center space-x-1">
                           <Users className="w-4 h-4" />
-                          <span>{course.enrolledStudents} 学员</span>
+                          <span>{course.enrolled_students || 0} 学员</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <Clock className="w-4 h-4" />
@@ -296,11 +310,11 @@ export const TeacherCourseDetail = () => {
                         </div>
                         <div className="flex items-center space-x-1">
                           <BookOpen className="w-4 h-4" />
-                          <span>{course.totalLessons} 课时</span>
+                          <span>{course.total_lessons || 0} 课时</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <Star className="w-4 h-4 text-yellow-400" />
-                          <span>{course.rating} ({course.ratingCount} 评价)</span>
+                          <span>{course.rating || 0} ({course.rating_count || 0} 评价)</span>
                         </div>
                       </div>
                     </div>
@@ -380,7 +394,7 @@ export const TeacherCourseDetail = () => {
                       <CardContent>
                         <div className="grid grid-cols-2 gap-6">
                           <div className="text-center p-4 bg-blue-50 rounded-lg">
-                            <div className="text-2xl font-bold text-blue-600">{course.enrolledStudents}</div>
+                            <div className="text-2xl font-bold text-blue-600">{course.enrolled_students || 0}</div>
                             <div className="text-sm text-gray-600">注册学员</div>
                           </div>
                           <div className="text-center p-4 bg-green-50 rounded-lg">
@@ -481,18 +495,130 @@ export const TeacherCourseDetail = () => {
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-center py-12">
-                          <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">暂无练习</h3>
-                          <p className="text-gray-500 mb-4">为课程添加练习，帮助学生巩固知识</p>
-                          <Button
-                            onClick={() => navigate(`/teacher/exercises/create?courseId=${courseId}`)}
-                            variant="outline"
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            创建第一个练习
-                          </Button>
-                        </div>
+                        {exercises.length > 0 ? (
+                          <div className="space-y-4">
+                            {exercises.map((exercise) => (
+                              <motion.div
+                                key={exercise.id}
+                                whileHover={{ scale: 1.02 }}
+                                className="border rounded-lg p-6 hover:shadow-md transition-all duration-200 bg-gradient-to-r from-purple-50 to-blue-50"
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center mb-2">
+                                      <h4 className="font-semibold text-gray-900 text-lg">
+                                        {exercise.title}
+                                      </h4>
+                                      <Badge
+                                        className="ml-3"
+                                        variant={
+                                          exercise.category === 'practice' ? 'default' :
+                                          exercise.category === 'homework' ? 'secondary' :
+                                          exercise.category === 'exam' ? 'destructive' : 'outline'
+                                        }
+                                      >
+                                        {exercise.category === 'practice' ? '自主练习' :
+                                         exercise.category === 'homework' ? '课后作业' :
+                                         exercise.category === 'exam' ? '模拟考试' : '复习练习'}
+                                      </Badge>
+                                    </div>
+
+                                    {exercise.description && (
+                                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                                        {exercise.description}
+                                      </p>
+                                    )}
+
+                                    <div className="flex items-center space-x-6 text-sm text-gray-500">
+                                      <div className="flex items-center">
+                                        <Clock className="w-4 h-4 mr-1" />
+                                        {exercise.time_limit ? `${exercise.time_limit}分钟` : '不限时'}
+                                      </div>
+                                      <div className="flex items-center">
+                                        <FileText className="w-4 h-4 mr-1" />
+                                        {exercise.total_questions}题
+                                      </div>
+                                      <div className="flex items-center">
+                                        <Target className="w-4 h-4 mr-1" />
+                                        {exercise.total_points || 100}分
+                                      </div>
+                                      <Badge
+                                        variant={
+                                          exercise.difficulty === 'easy' ? 'default' :
+                                          exercise.difficulty === 'medium' ? 'secondary' : 'destructive'
+                                        }
+                                      >
+                                        {exercise.difficulty === 'easy' ? '简单' :
+                                         exercise.difficulty === 'medium' ? '中等' : '困难'}
+                                      </Badge>
+                                    </div>
+
+                                    {exercise.total_attempts > 0 && (
+                                      <div className="mt-3 text-sm text-gray-500">
+                                        <span>已有 {exercise.total_attempts} 人参与</span>
+                                        {exercise.average_score > 0 && (
+                                          <span className="ml-4">平均分: {exercise.average_score.toFixed(1)}分</span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="flex flex-col items-end space-y-2">
+                                    <div className="flex space-x-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => navigate(`/teacher/exercises/${exercise.id}`)}
+                                      >
+                                        <Eye className="w-4 h-4 mr-1" />
+                                        查看
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => navigate(`/teacher/exercises/${exercise.id}/edit`)}
+                                      >
+                                        <Edit3 className="w-4 h-4 mr-1" />
+                                        编辑
+                                      </Button>
+                                    </div>
+
+                                    <div className="flex items-center space-x-2">
+                                      {exercise.is_published ? (
+                                        <Badge variant="outline" className="text-green-600 border-green-600">
+                                          已发布
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="text-orange-600 border-orange-600">
+                                          草稿
+                                        </Badge>
+                                      )}
+
+                                      {exercise.total_attempts > 0 && (
+                                        <div className="flex items-center text-sm text-gray-500">
+                                          <TrendingUp className="w-4 h-4 mr-1" />
+                                          {exercise.total_attempts}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12">
+                            <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">暂无练习</h3>
+                            <p className="text-gray-500 mb-4">为课程添加练习，帮助学生巩固知识</p>
+                            <Button
+                              onClick={() => navigate(`/teacher/exercises/create?courseId=${courseId}`)}
+                              variant="outline"
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              创建第一个练习
+                            </Button>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </motion.div>
@@ -597,29 +723,29 @@ export const TeacherCourseDetail = () => {
                   <CardContent>
                     <div className="flex items-center space-x-4 mb-4">
                       <Avatar className="w-16 h-16">
-                        <AvatarImage src={course.instructor.avatar} />
-                        <AvatarFallback>{course.instructor.name[0]}</AvatarFallback>
+                        <AvatarImage src="https://i.pravatar.cc/120" />
+                        <AvatarFallback>{course.instructor_name[0]}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <h3 className="font-semibold text-gray-900">{course.instructor.name}</h3>
-                        <p className="text-sm text-gray-600">{course.instructor.title}</p>
+                        <h3 className="font-semibold text-gray-900">{course.instructor_name}</h3>
+                        <p className="text-sm text-gray-600">讲师</p>
                         <div className="flex items-center mt-1">
                           <Star className="w-4 h-4 text-yellow-500 mr-1" />
-                          <span className="text-sm text-gray-600">{course.instructor.rating}</span>
+                          <span className="text-sm text-gray-600">{course.rating || 0}</span>
                         </div>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <div className="text-gray-600">学生数量</div>
-                        <div className="font-semibold">{course.instructor.students}</div>
+                        <div className="font-semibold">{course.enrolled_students || 0}</div>
                       </div>
                       <div>
-                        <div className="text-gray-600">课程数量</div>
-                        <div className="font-semibold">{course.instructor.courses}</div>
+                        <div className="text-gray-600">课程评分</div>
+                        <div className="font-semibold">{course.rating || 0}/5</div>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600 mt-4">{course.instructor.experience}</p>
+                    <p className="text-sm text-gray-600 mt-4">专业的课程讲师，致力于为学生提供优质的学习体验。</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -637,77 +763,34 @@ export const TeacherCourseDetail = () => {
                           <Users className="w-4 h-4 text-blue-600" />
                           <span className="text-sm">注册学员</span>
                         </div>
-                        <span className="font-semibold">{course.enrolledStudents}</span>
+                        <span className="font-semibold">{course.enrolled_students || 0}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <Star className="w-4 h-4 text-yellow-600" />
                           <span className="text-sm">课程评分</span>
                         </div>
-                        <span className="font-semibold">{course.rating}</span>
+                        <span className="font-semibold">{course.rating || 0}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <MessageCircle className="w-4 h-4 text-green-600" />
                           <span className="text-sm">评价数量</span>
                         </div>
-                        <span className="font-semibold">{course.ratingCount}</span>
+                        <span className="font-semibold">{course.rating_count || 0}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <Calendar className="w-4 h-4 text-purple-600" />
                           <span className="text-sm">创建时间</span>
                         </div>
-                        <span className="font-semibold text-sm">{course.createdAt}</span>
+                        <span className="font-semibold text-sm">{new Date(course.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               </motion.div>
 
-              {/* 快速操作 */}
-              <motion.div variants={cardVariants}>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">快速操作</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <Button
-                        onClick={handleEditCourse}
-                        className="w-full justify-start"
-                        variant="outline"
-                      >
-                        <Edit3 className="w-4 h-4 mr-2" />
-                        编辑课程
-                      </Button>
-                      <Button
-                        onClick={handleViewAnalytics}
-                        className="w-full justify-start"
-                        variant="outline"
-                      >
-                        <BarChart3 className="w-4 h-4 mr-2" />
-                        查看数据
-                      </Button>
-                      <Button
-                        onClick={handleCourseSettings}
-                        className="w-full justify-start"
-                        variant="outline"
-                      >
-                        <Settings className="w-4 h-4 mr-2" />
-                        课程设置
-                      </Button>
-                      <Button
-                        className="w-full justify-start"
-                        variant="outline"
-                      >
-                        <Share2 className="w-4 h-4 mr-2" />
-                        分享课程
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
             </div>
           </div>
         </motion.div>

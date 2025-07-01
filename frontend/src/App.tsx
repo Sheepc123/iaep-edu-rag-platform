@@ -15,7 +15,7 @@ import { Profile } from "./pages/student/Profile";
 
 // 教师端页面导入
 import { TeacherDashboard } from "./pages/teacher/Dashboard";
-import { TeacherCourseManagement } from "./pages/teacher/CourseManagement";
+import { TeacherCourses } from "./pages/teacher/Courses";
 import { TeacherCourseDetail } from "./pages/teacher/CourseDetail";
 import { TeacherCourseCreate } from "./pages/teacher/CourseCreate";
 import { TeacherCourseEdit } from "./pages/teacher/CourseEdit";
@@ -44,6 +44,7 @@ function App() {
           <Route path="/student/courses" element={<Courses />} />
           <Route path="/student/courses/:courseId" element={<CourseDetail />} />
           <Route path="/student/exercises" element={<Exercises />} />
+          <Route path="/student/exercise/:exerciseId" element={<ExercisePractice />} />
           <Route path="/student/exercises/practice/:exerciseId" element={<ExercisePractice />} />
           <Route path="/student/exercises/result/:exerciseId" element={<ExerciseResult />} />
           <Route path="/student/learning" element={<Learning />} />
@@ -53,7 +54,7 @@ function App() {
 
           {/* 教师端路由 */}
           <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-          <Route path="/teacher/courses" element={<TeacherCourseManagement />} />
+          <Route path="/teacher/courses" element={<TeacherCourses />} />
           <Route path="/teacher/courses/create" element={<TeacherCourseCreate />} />
           <Route path="/teacher/courses/:courseId" element={<TeacherCourseDetail />} />
           <Route path="/teacher/courses/:courseId/edit" element={<TeacherCourseEdit />} />

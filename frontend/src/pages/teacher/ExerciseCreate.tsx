@@ -66,7 +66,7 @@ interface Question {
   id: string;
   question_text: string;
   question_type: 'multiple_choice' | 'fill_blank' | 'essay';
-  options: string[];
+  options: string[] | Record<string, string>;
   correct_answer: string;
   explanation: string;
   points: number;
@@ -144,7 +144,11 @@ export const TeacherExerciseCreate: React.FC = () => {
     }
 
     if (question.question_type === "multiple_choice") {
-      const validOptions = question.options.filter(opt => opt.trim());
+      // 处理选项格式：支持数组和字典两种格式
+      const validOptions = Array.isArray(question.options)
+        ? question.options.filter(opt => opt && opt.trim())
+        : Object.values(question.options || {}).filter(opt => opt && opt.trim());
+
       if (validOptions.length < 2) {
         toast({
           title: "错误",
@@ -223,7 +227,9 @@ export const TeacherExerciseCreate: React.FC = () => {
       id: Date.now().toString() + index,
       question_text: gq.question_text,
       question_type: gq.question_type,
-      options: gq.options || ["", "", "", ""],
+      options: gq.options
+        ? (Array.isArray(gq.options) ? gq.options : Object.values(gq.options))
+        : ["", "", "", ""],
       correct_answer: gq.correct_answer,
       explanation: gq.explanation,
       points: gq.points,
@@ -275,7 +281,11 @@ export const TeacherExerciseCreate: React.FC = () => {
         const questionData: QuestionCreateRequest = {
           content: question.question_text,  // 后端期望的字段名
           question_type: question.question_type,
-          options: question.question_type === "multiple_choice" ? question.options.filter(opt => opt.trim()) : undefined,
+          options: question.question_type === "multiple_choice"
+            ? (Array.isArray(question.options)
+                ? question.options.filter(opt => opt && opt.trim())
+                : Object.values(question.options || {}).filter(opt => opt && opt.trim()))
+            : undefined,
           correct_answer: question.correct_answer,
           explanation: question.explanation,
           points: question.points,
@@ -642,21 +652,35 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, index, onRemove }
 
           <p className="text-gray-900 mb-2">{question.question_text}</p>
 
-          {question.question_type === 'multiple_choice' && (
+          {question.question_type === 'multiple_choice' && question.options && (
             <div className="space-y-1">
-              {question.options.filter(opt => opt.trim()).map((option, idx) => (
-                <div key={idx} className="flex items-center text-sm">
-                  <span className={`mr-2 ${option === question.correct_answer ? 'text-green-600 font-medium' : 'text-gray-600'}`}>
-                    {String.fromCharCode(65 + idx)}.
-                  </span>
-                  <span className={option === question.correct_answer ? 'text-green-600 font-medium' : 'text-gray-700'}>
-                    {option}
-                  </span>
-                  {option === question.correct_answer && (
-                    <CheckCircle className="w-4 h-4 ml-2 text-green-600" />
-                  )}
-                </div>
-              ))}
+              {(() => {
+                // 处理选项格式：支持数组和字典两种格式
+                const options = Array.isArray(question.options)
+                  ? question.options
+                      .filter(opt => opt && opt.trim())
+                      .map((opt, idx) => ({ key: String.fromCharCode(65 + idx), value: opt }))
+                  : Object.entries(question.options)
+                      .filter(([key, value]) => value && value.trim())
+                      .map(([key, value]) => ({ key, value }));
+
+                return options.map(({ key, value }) => {
+                  const isCorrect = question.correct_answer === key || question.correct_answer === value;
+                  return (
+                    <div key={key} className="flex items-center text-sm">
+                      <span className={`mr-2 ${isCorrect ? 'text-green-600 font-medium' : 'text-gray-600'}`}>
+                        {key}.
+                      </span>
+                      <span className={isCorrect ? 'text-green-600 font-medium' : 'text-gray-700'}>
+                        {value}
+                      </span>
+                      {isCorrect && (
+                        <CheckCircle className="w-4 h-4 ml-2 text-green-600" />
+                      )}
+                    </div>
+                  );
+                });
+              })()}
             </div>
           )}
 

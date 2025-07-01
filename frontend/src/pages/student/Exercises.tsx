@@ -378,7 +378,7 @@ export const Exercises = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xl font-bold">
-                  可用练习 {exercises.length > 0 && `(${exercises.length})`}
+                  练习历史 {exercises.length > 0 && `(${exercises.length})`}
                 </CardTitle>
                 {totalPages > 1 && (
                   <div className="flex items-center space-x-2">

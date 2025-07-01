@@ -29,7 +29,7 @@ import {
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { courseAPI, Course } from "@/services/api";
+import { courseAPI, teacherAPI, Course } from "@/services/api";
 import { useToast } from "@/components/ui/use-toast";
 
 // Animation variants
@@ -90,7 +90,7 @@ export const TeacherCourses = () => {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const response = await courseAPI.getCourses({
+      const response = await teacherAPI.getCourses({
         is_published: filterStatus === "all" ? undefined : filterStatus === "published",
         search: searchTerm || undefined,
         category: selectedCategory === "all" ? undefined : selectedCategory,
@@ -377,10 +377,6 @@ const CourseCard = ({ course, onDelete }: { course: Course; onDelete: (id: numbe
             </Link>
           </Button>
           <Button asChild size="sm" variant="outline" className="flex-1">
-            <Link to={`/teacher/courses/${course.id}/edit`}>
-              <Edit className="mr-1 w-3 h-3" />
-              编辑
-            </Link>
           </Button>
           <Button
             size="sm"

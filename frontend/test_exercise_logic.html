@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>练习逻辑测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .question {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .option {
+            margin: 10px 0;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .option:hover {
+            border-color: #007bff;
+        }
+        .option.selected {
+            border-color: #007bff;
+            background-color: #e7f3ff;
+        }
+        .option.correct {
+            border-color: #28a745;
+            background-color: #d4edda;
+        }
+        .option.incorrect {
+            border-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .result.correct {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .result.incorrect {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 练习页面逻辑测试</h1>
+    
+    <div class="test-section">
+        <h2>选择题测试</h2>
+        <div class="question" id="multiple-choice-question">
+            <h3>Python是什么类型的编程语言？</h3>
+            <div class="option" data-value="A" onclick="selectOption('A')">A. 编译型</div>
+            <div class="option" data-value="B" onclick="selectOption('B')">B. 解释型</div>
+            <div class="option" data-value="C" onclick="selectOption('C')">C. 汇编型</div>
+            <div class="option" data-value="D" onclick="selectOption('D')">D. 机器型</div>
+            
+            <div style="margin-top: 15px;">
+                <button onclick="checkMultipleChoice()">检查答案</button>
+                <button onclick="resetMultipleChoice()">重置</button>
+            </div>
+            
+            <div id="multiple-choice-result"></div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>填空题测试</h2>
+        <div class="question">
+            <h3>在Python中，用于定义函数的关键字是______。</h3>
+            <input type="text" id="fill-blank-answer" placeholder="请输入答案..." style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px;">
+            
+            <div style="margin-top: 15px;">
+                <button onclick="checkFillBlank()">检查答案</button>
+                <button onclick="resetFillBlank()">重置</button>
+            </div>
+            
+            <div id="fill-blank-result"></div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>数据格式测试</h2>
+        <div>
+            <h3>测试选项格式转换</h3>
+            <button onclick="testOptionFormats()">测试选项格式</button>
+            <div id="format-test-result" class="log"></div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>测试日志</h2>
+        <div id="test-log" class="log"></div>
+    </div>
+
+    <script>
+        let selectedAnswer = '';
+        const correctAnswerMultiple = 'B';
+        const correctAnswerFill = 'def';
+        
+        function log(message) {
+            const logDiv = document.getElementById('test-log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function selectOption(value) {
+            // 清除之前的选择
+            document.querySelectorAll('.option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            // 选择当前选项
+            document.querySelector(`[data-value="${value}"]`).classList.add('selected');
+            selectedAnswer = value;
+            
+            log(`选择了选项: ${value}`);
+        }
+        
+        function checkMultipleChoice() {
+            if (!selectedAnswer) {
+                alert('请先选择一个答案');
+                return;
+            }
+            
+            const isCorrect = selectedAnswer === correctAnswerMultiple;
+            const resultDiv = document.getElementById('multiple-choice-result');
+            
+            // 高亮显示结果
+            document.querySelectorAll('.option').forEach(opt => {
+                const value = opt.getAttribute('data-value');
+                opt.classList.remove('correct', 'incorrect');
+                
+                if (value === correctAnswerMultiple) {
+                    opt.classList.add('correct');
+                }
+                
+                if (value === selectedAnswer && !isCorrect) {
+                    opt.classList.add('incorrect');
+                }
+            });
+            
+            // 显示结果
+            resultDiv.innerHTML = `
+                <div class="result ${isCorrect ? 'correct' : 'incorrect'}">
+                    <strong>${isCorrect ? '✓ 正确' : '✗ 错误'}</strong><br>
+                    正确答案: ${correctAnswerMultiple}<br>
+                    您的答案: ${selectedAnswer}
+                </div>
+            `;
+            
+            log(`选择题检查: 正确答案=${correctAnswerMultiple}, 用户答案=${selectedAnswer}, 结果=${isCorrect ? '正确' : '错误'}`);
+        }
+        
+        function resetMultipleChoice() {
+            selectedAnswer = '';
+            document.querySelectorAll('.option').forEach(opt => {
+                opt.classList.remove('selected', 'correct', 'incorrect');
+            });
+            document.getElementById('multiple-choice-result').innerHTML = '';
+            log('重置选择题');
+        }
+        
+        function checkFillBlank() {
+            const userAnswer = document.getElementById('fill-blank-answer').value;
+            const normalizeAnswer = (ans) => ans.trim().toLowerCase();
+            const isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswerFill);
+            
+            const resultDiv = document.getElementById('fill-blank-result');
+            resultDiv.innerHTML = `
+                <div class="result ${isCorrect ? 'correct' : 'incorrect'}">
+                    <strong>${isCorrect ? '✓ 正确' : '✗ 错误'}</strong><br>
+                    正确答案: ${correctAnswerFill}<br>
+                    您的答案: ${userAnswer}
+                </div>
+            `;
+            
+            log(`填空题检查: 正确答案="${correctAnswerFill}", 用户答案="${userAnswer}", 结果=${isCorrect ? '正确' : '错误'}`);
+        }
+        
+        function resetFillBlank() {
+            document.getElementById('fill-blank-answer').value = '';
+            document.getElementById('fill-blank-result').innerHTML = '';
+            log('重置填空题');
+        }
+        
+        function testOptionFormats() {
+            const formatTestDiv = document.getElementById('format-test-result');
+            formatTestDiv.innerHTML = '';
+            
+            // 测试不同的选项格式
+            const testCases = [
+                {
+                    name: '对象格式',
+                    options: {"A": "编译型", "B": "解释型", "C": "汇编型", "D": "机器型"},
+                    correctAnswer: "B"
+                },
+                {
+                    name: '数组格式（带字母）',
+                    options: ["A. 编译型", "B. 解释型", "C. 汇编型", "D. 机器型"],
+                    correctAnswer: "B"
+                },
+                {
+                    name: '数组格式（纯文本）',
+                    options: ["编译型", "解释型", "汇编型", "机器型"],
+                    correctAnswer: "B"
+                }
+            ];
+            
+            testCases.forEach(testCase => {
+                log(`测试 ${testCase.name}:`);
+                log(`  选项: ${JSON.stringify(testCase.options)}`);
+                log(`  正确答案: ${testCase.correctAnswer}`);
+                
+                // 模拟前端处理逻辑
+                let formattedOptions = [];
+                if (Array.isArray(testCase.options)) {
+                    formattedOptions = testCase.options;
+                } else if (typeof testCase.options === 'object') {
+                    formattedOptions = Object.entries(testCase.options).map(([key, value]) => `${key}. ${value}`);
+                }
+                
+                log(`  转换后选项: ${JSON.stringify(formattedOptions)}`);
+                
+                // 测试选项字母提取
+                formattedOptions.forEach((option, index) => {
+                    const optionLetter = option.includes('.') ? option.split('.')[0].trim() : String.fromCharCode(65 + index);
+                    const isCorrect = optionLetter === testCase.correctAnswer;
+                    log(`    选项 "${option}" -> 字母 "${optionLetter}" -> ${isCorrect ? '正确' : '错误'}`);
+                });
+                
+                log('');
+            });
+        }
+        
+        // 页面加载时的初始化
+        window.onload = function() {
+            log('练习逻辑测试页面加载完成');
+            log('请测试选择题和填空题的答案检查逻辑');
+        };
+    </script>
+</body>
+</html>

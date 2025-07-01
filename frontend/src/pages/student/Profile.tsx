@@ -26,8 +26,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StudentLayout from "@/components/layouts/StudentLayout";
-import { courseAPI, CourseEnrollment } from "@/services/api";
+import { courseAPI, userAPI, authAPI, CourseEnrollment } from "@/services/api";
 import { useToast } from "@/components/ui/use-toast";
+import { AvatarUpload } from "@/components/ui/avatar-upload";
 
 interface UserProfile {
   name: string;
@@ -65,14 +66,15 @@ export const Profile = () => {
 
   // 用户信息状态
   const [profile, setProfile] = useState<UserProfile>({
-    name: "张同学",
-    email: "zhang.student@example.com",
-    phone: "138****8888",
-    school: "清华大学",
-    college: "计算机科学与技术学院",
-    studentId: "2021012345",
+    name: "",
+    email: "",
+    phone: "",
+    school: "",
+    college: "",
+    studentId: "",
     avatar: "https://i.pravatar.cc/120"
   });
+  const [profileLoading, setProfileLoading] = useState(true);
 
   // 我的课程状态
   const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
@@ -102,6 +104,60 @@ export const Profile = () => {
   // 标签页状态
   const [activeTab, setActiveTab] = useState("profile");
   const [hasLoadedCourses, setHasLoadedCourses] = useState(false);
+
+  // 加载用户数据
+  const fetchUserProfile = async () => {
+    try {
+      setProfileLoading(true);
+
+      // 获取用户基本信息
+      const userInfo = await userAPI.getProfile();
+
+      // 获取学生档案
+      let studentProfile = null;
+      try {
+        studentProfile = await userAPI.getStudentProfile();
+      } catch (error) {
+        console.log('学生档案不存在，将使用默认值');
+      }
+
+      // 合并数据
+      const profileData: UserProfile = {
+        name: userInfo.full_name || userInfo.username || "",
+        email: userInfo.email || "",
+        phone: userInfo.phone || "",
+        school: studentProfile?.school || "",
+        college: studentProfile?.college || "",
+        studentId: studentProfile?.student_id || "",
+        avatar: userInfo.avatar || "https://i.pravatar.cc/120"
+      };
+
+      setProfile(profileData);
+      setEditForm(profileData);
+
+    } catch (error: any) {
+      console.error('加载用户数据失败:', error);
+      toast({
+        title: "加载失败",
+        description: "无法加载用户数据，请刷新页面重试",
+        variant: "destructive",
+      });
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  // 页面加载时获取用户数据
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  // 处理头像更新
+  const handleAvatarChange = (newAvatarUrl: string) => {
+    const updatedProfile = { ...profile, avatar: newAvatarUrl };
+    setProfile(updatedProfile);
+    setEditForm(updatedProfile);
+  };
 
   // 获取已注册课程
   const fetchEnrolledCourses = async () => {
@@ -175,7 +231,7 @@ export const Profile = () => {
       opacity: 1,
       y: 0,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 100,
         damping: 15
       }
@@ -186,13 +242,44 @@ export const Profile = () => {
   const handleSaveProfile = async () => {
     setIsSaving(true);
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 调用真实API更新用户基本信息
+      const updatedUser = await userAPI.updateProfile({
+        full_name: editForm.name,
+        phone: editForm.phone,
+        avatar: editForm.avatar
+      });
+
+      // 调用真实API更新学生档案
+      await userAPI.updateStudentProfile({
+        school: editForm.school,
+        college: editForm.college,
+        student_id: editForm.studentId
+      });
+
+      // 更新本地状态
       setProfile(editForm);
       setIsEditing(false);
       setSaveMessage({ type: 'success', text: '个人信息更新成功！' });
-    } catch (error) {
-      setSaveMessage({ type: 'error', text: '更新失败，请稍后重试。' });
+
+      // 触发自定义事件通知其他组件用户信息已更新
+      window.dispatchEvent(new CustomEvent('userProfileUpdated', {
+        detail: { full_name: editForm.name }
+      }));
+
+      toast({
+        title: "保存成功",
+        description: "个人信息已更新",
+      });
+    } catch (error: any) {
+      console.error('更新个人信息失败:', error);
+      const errorMessage = error?.detail || error?.message || '更新失败，请稍后重试';
+      setSaveMessage({ type: 'error', text: errorMessage });
+
+      toast({
+        title: "保存失败",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsSaving(false);
       setTimeout(() => setSaveMessage(null), 3000);
@@ -219,13 +306,39 @@ export const Profile = () => {
 
     setIsSaving(true);
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 调用真实API修改密码
+      await authAPI.changePassword({
+        current_password: passwordForm.currentPassword,
+        new_password: passwordForm.newPassword,
+        confirm_password: passwordForm.confirmPassword
+      });
+
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setShowPasswordForm(false);
-      setSaveMessage({ type: 'success', text: '密码修改成功！' });
-    } catch (error) {
-      setSaveMessage({ type: 'error', text: '密码修改失败，请检查当前密码是否正确。' });
+      setSaveMessage({ type: 'success', text: '密码修改成功！请重新登录。' });
+
+      toast({
+        title: "密码修改成功",
+        description: "密码已更新，请重新登录",
+      });
+
+      // 3秒后跳转到登录页面
+      setTimeout(() => {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/login';
+      }, 3000);
+
+    } catch (error: any) {
+      console.error('修改密码失败:', error);
+      const errorMessage = error?.detail || error?.message || '密码修改失败，请检查当前密码是否正确';
+      setSaveMessage({ type: 'error', text: errorMessage });
+
+      toast({
+        title: "密码修改失败",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsSaving(false);
       setTimeout(() => setSaveMessage(null), 3000);
@@ -295,18 +408,13 @@ export const Profile = () => {
                 <motion.div className="lg:col-span-1" variants={cardVariants}>
             <Card className="border-0 shadow-lg">
               <CardContent className="p-8 text-center">
-                <div className="relative inline-block mb-6">
-                  <img
-                    src={profile.avatar}
-                    alt="用户头像"
-                    className="w-32 h-32 rounded-full border-4 border-white shadow-lg"
+                <div className="mb-6">
+                  <AvatarUpload
+                    currentAvatar={profile.avatar}
+                    onAvatarChange={handleAvatarChange}
+                    size="md"
+                    disabled={profileLoading}
                   />
-                  <Button
-                    size="sm"
-                    className="absolute bottom-2 right-2 rounded-full w-8 h-8 p-0 bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                  </Button>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">{profile.name}</h2>
                 <p className="text-gray-600 mb-1">学号：{profile.studentId}</p>
@@ -368,6 +476,12 @@ export const Profile = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
+                {profileLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span className="ml-2 text-gray-600">加载中...</span>
+                  </div>
+                ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* 姓名 */}
                   <div>
@@ -458,6 +572,7 @@ export const Profile = () => {
                     )}
                   </div>
                 </div>
+                )}
               </CardContent>
             </Card>
 

@@ -435,7 +435,7 @@ export const CourseDetail = () => {
                                 className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow cursor-pointer"
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                onClick={() => navigate(`/student/exercises/practice/${exercise.id}`)}
+                                onClick={() => navigate(`/student/exercise/${exercise.id}`)}
                               >
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1">

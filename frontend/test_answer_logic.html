@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>答案逻辑测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .question {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .option {
+            margin: 10px 0;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+        }
+        .option:hover {
+            border-color: #007bff;
+        }
+        .option.selected {
+            border-color: #007bff;
+            background-color: #e7f3ff;
+        }
+        .option.correct {
+            border-color: #28a745;
+            background-color: #d4edda;
+        }
+        .option.incorrect {
+            border-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .option.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .radio-circle {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .radio-circle.selected {
+            border-color: #007bff;
+            background-color: #007bff;
+        }
+        .radio-circle.correct {
+            border-color: #28a745;
+            background-color: #28a745;
+        }
+        .radio-circle.incorrect {
+            border-color: #dc3545;
+            background-color: #dc3545;
+        }
+        .radio-dot {
+            width: 8px;
+            height: 8px;
+            background-color: white;
+            border-radius: 50%;
+        }
+        .result-summary {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 答案显示逻辑测试</h1>
+    
+    <div class="test-section">
+        <h2>模拟练习状态</h2>
+        <div>
+            <label>
+                <input type="checkbox" id="isSubmitted" onchange="updateState()"> 已提交 (isSubmitted)
+            </label>
+        </div>
+        <div>
+            <label>
+                <input type="checkbox" id="showExplanation" onchange="updateState()"> 显示解析 (showExplanation)
+            </label>
+        </div>
+        <div>
+            <strong>showCorrect = isSubmitted && showExplanation = <span id="showCorrectValue">false</span></strong>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>选择题测试</h2>
+        <div class="question">
+            <h3>Python是什么类型的编程语言？</h3>
+            <div id="options-container">
+                <!-- 选项将通过JavaScript生成 -->
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <button onclick="submitAnswer()" id="submitBtn">提交答案</button>
+                <button onclick="resetTest()">重置</button>
+            </div>
+            
+            <div id="result-summary" class="result-summary" style="display: none;">
+                <!-- 结果摘要 -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>测试日志</h2>
+        <div id="test-log" class="log"></div>
+    </div>
+
+    <script>
+        // 模拟题目数据
+        const questionData = {
+            id: 8,
+            type: 'multiple_choice',
+            content: 'Python是什么类型的编程语言？',
+            options: {'A': '编译型', 'B': '解释型', 'C': '汇编型', 'D': '机器型'},
+            correctAnswer: 'B'
+        };
+        
+        let selectedAnswer = '';
+        let isSubmitted = false;
+        let showExplanation = false;
+        
+        function log(message) {
+            const logDiv = document.getElementById('test-log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateState() {
+            isSubmitted = document.getElementById('isSubmitted').checked;
+            showExplanation = document.getElementById('showExplanation').checked;
+            
+            const showCorrect = isSubmitted && showExplanation;
+            document.getElementById('showCorrectValue').textContent = showCorrect;
+            
+            log(`状态更新: isSubmitted=${isSubmitted}, showExplanation=${showExplanation}, showCorrect=${showCorrect}`);
+            
+            renderOptions();
+            updateSubmitButton();
+        }
+        
+        function renderOptions() {
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            
+            const showCorrect = isSubmitted && showExplanation;
+            const disabled = isSubmitted;
+            
+            // 转换选项格式（模拟前端逻辑）
+            const formattedOptions = Object.entries(questionData.options).map(([key, value]) => `${key}. ${value}`);
+            
+            formattedOptions.forEach((option, index) => {
+                const optionLetter = option.split('.')[0].trim();
+                const isSelected = selectedAnswer === optionLetter;
+                const isCorrect = optionLetter === questionData.correctAnswer;
+                
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'option';
+                
+                // 设置样式
+                if (disabled) {
+                    optionDiv.classList.add('disabled');
+                    if (showCorrect && isCorrect) {
+                        optionDiv.classList.add('correct');
+                    } else if (showCorrect && isSelected && !isCorrect) {
+                        optionDiv.classList.add('incorrect');
+                    }
+                } else if (isSelected) {
+                    optionDiv.classList.add('selected');
+                }
+                
+                // 创建单选圆圈
+                const radioCircle = document.createElement('div');
+                radioCircle.className = 'radio-circle';
+                
+                if (disabled && showCorrect && isCorrect) {
+                    radioCircle.classList.add('correct');
+                } else if (disabled && showCorrect && isSelected && !isCorrect) {
+                    radioCircle.classList.add('incorrect');
+                } else if (isSelected) {
+                    radioCircle.classList.add('selected');
+                }
+                
+                if (isSelected || (showCorrect && isCorrect)) {
+                    const dot = document.createElement('div');
+                    dot.className = 'radio-dot';
+                    radioCircle.appendChild(dot);
+                }
+                
+                // 创建选项文本
+                const optionText = document.createElement('span');
+                optionText.textContent = option;
+                
+                optionDiv.appendChild(radioCircle);
+                optionDiv.appendChild(optionText);
+                
+                // 添加点击事件
+                if (!disabled) {
+                    optionDiv.onclick = () => selectOption(optionLetter);
+                }
+                
+                container.appendChild(optionDiv);
+                
+                log(`渲染选项: ${option} -> 字母: ${optionLetter}, 选中: ${isSelected}, 正确: ${isCorrect}, 显示正确: ${showCorrect}`);
+            });
+            
+            // 显示结果摘要
+            if (showCorrect) {
+                showResultSummary();
+            } else {
+                hideResultSummary();
+            }
+        }
+        
+        function selectOption(optionLetter) {
+            if (isSubmitted) return;
+            
+            selectedAnswer = optionLetter;
+            log(`选择选项: ${optionLetter}`);
+            renderOptions();
+        }
+        
+        function submitAnswer() {
+            if (!selectedAnswer) {
+                alert('请先选择一个答案');
+                return;
+            }
+            
+            // 模拟提交逻辑
+            isSubmitted = true;
+            showExplanation = true;
+            
+            // 更新复选框状态
+            document.getElementById('isSubmitted').checked = true;
+            document.getElementById('showExplanation').checked = true;
+            
+            log(`提交答案: ${selectedAnswer}`);
+            updateState();
+        }
+        
+        function resetTest() {
+            selectedAnswer = '';
+            isSubmitted = false;
+            showExplanation = false;
+            
+            document.getElementById('isSubmitted').checked = false;
+            document.getElementById('showExplanation').checked = false;
+            
+            log('重置测试');
+            updateState();
+        }
+        
+        function updateSubmitButton() {
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = isSubmitted;
+            submitBtn.textContent = isSubmitted ? '已提交' : '提交答案';
+        }
+        
+        function showResultSummary() {
+            const resultDiv = document.getElementById('result-summary');
+            const isCorrect = selectedAnswer === questionData.correctAnswer;
+            
+            resultDiv.innerHTML = `
+                <h4>答案结果</h4>
+                <p><strong>正确答案:</strong> ${questionData.correctAnswer}</p>
+                <p><strong>您的答案:</strong> ${selectedAnswer}</p>
+                <p><strong>结果:</strong> <span style="color: ${isCorrect ? 'green' : 'red'}">${isCorrect ? '✓ 正确' : '✗ 错误'}</span></p>
+            `;
+            resultDiv.style.display = 'block';
+        }
+        
+        function hideResultSummary() {
+            const resultDiv = document.getElementById('result-summary');
+            resultDiv.style.display = 'none';
+        }
+        
+        // 初始化
+        window.onload = function() {
+            log('答案逻辑测试页面加载完成');
+            log(`题目数据: ${JSON.stringify(questionData)}`);
+            renderOptions();
+            updateSubmitButton();
+        };
+    </script>
+</body>
+</html>
