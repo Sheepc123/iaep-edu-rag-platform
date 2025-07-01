@@ -1,9 +1,12 @@
 """
 用户管理API端点
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import Any, List
+import os
+import uuid
+from pathlib import Path
 
 from ....core.database import get_db
 from ....schemas.auth import (
@@ -661,4 +664,77 @@ async def get_student_detail(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取学生详细信息失败"
+        )
+
+
+@router.post("/upload-avatar", response_model=dict, summary="上传用户头像")
+async def upload_avatar(
+    avatar: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
+    auth_service: AuthService = Depends(get_auth_service)
+) -> Any:
+    """
+    上传用户头像
+
+    - **avatar**: 头像图片文件 (支持 JPG, PNG, GIF)
+    - 文件大小限制: 5MB
+    """
+    try:
+        # 验证文件类型
+        allowed_types = ["image/jpeg", "image/png", "image/gif"]
+        if avatar.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="不支持的文件类型，请上传 JPG、PNG 或 GIF 格式的图片"
+            )
+
+        # 验证文件大小 (5MB)
+        if avatar.size and avatar.size > 5 * 1024 * 1024:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="文件大小不能超过5MB"
+            )
+
+        # 创建上传目录
+        upload_dir = Path("static/avatars")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+
+        # 生成唯一文件名
+        file_extension = avatar.filename.split(".")[-1] if avatar.filename else "jpg"
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        file_path = upload_dir / unique_filename
+
+        # 保存文件
+        with open(file_path, "wb") as buffer:
+            content = await avatar.read()
+            buffer.write(content)
+
+        # 生成访问URL
+        avatar_url = f"/static/avatars/{unique_filename}"
+
+        # 更新用户头像
+        current_user.avatar = avatar_url
+        auth_service.db.commit()
+
+        # 删除旧头像文件（如果存在且不是默认头像）
+        if current_user.avatar and current_user.avatar.startswith("/static/avatars/"):
+            old_file_path = Path(".") / current_user.avatar.lstrip("/")
+            if old_file_path.exists() and old_file_path != file_path:
+                try:
+                    old_file_path.unlink()
+                except Exception:
+                    pass  # 忽略删除旧文件的错误
+
+        return {
+            "success": True,
+            "message": "头像上传成功",
+            "avatar_url": avatar_url
+        }
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="头像上传失败"
         )

@@ -55,6 +55,13 @@ def create_application() -> FastAPI:
     if not os.path.exists("uploads"):
         os.makedirs("uploads")
     app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+    # 配置头像静态文件服务
+    if not os.path.exists("static"):
+        os.makedirs("static")
+    if not os.path.exists("static/avatars"):
+        os.makedirs("static/avatars")
+    app.mount("/static", StaticFiles(directory="static"), name="static")
     
     # 注册API路由
     app.include_router(api_router, prefix="/api/v1")

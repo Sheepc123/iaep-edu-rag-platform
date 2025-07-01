@@ -84,6 +84,14 @@ class CourseResponse(BaseModel):
         from_attributes = True
 
 
+class CourseListResponse(BaseModel):
+    """课程列表响应模式"""
+    courses: List[CourseResponse] = Field(..., description="课程列表")
+    total: int = Field(..., description="总数量")
+    skip: int = Field(..., description="跳过的记录数")
+    limit: int = Field(..., description="返回的记录数")
+
+
 class LessonCreate(BaseModel):
     """课时创建请求模式"""
     title: str = Field(..., min_length=1, max_length=200, description="课时标题")

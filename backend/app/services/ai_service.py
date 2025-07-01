@@ -675,6 +675,10 @@ class AIService:
             else:
                 result = self._generate_mock_questions(subject, topic, difficulty, question_count, question_types)
 
+            # 标准化题目格式
+            if "questions" in result:
+                result["questions"] = self._normalize_question_format(result["questions"])
+
             ai_logger.info(f"✅ 题目生成完成，共生成 {len(result.get('questions', []))} 道题目")
             return result
 
@@ -731,8 +735,8 @@ class AIService:
     {{
       "question_text": "题目内容",
       "question_type": "multiple_choice/fill_blank/essay",
-      "options": ["选项A", "选项B", "选项C", "选项D"],  // 仅选择题需要
-      "correct_answer": "正确答案",
+      "options": {{"A": "选项A", "B": "选项B", "C": "选项C", "D": "选项D"}},  // 仅选择题需要，必须是字典格式
+      "correct_answer": "A",  // 选择题答案必须是字母A/B/C/D，填空题和问答题是具体内容
       "explanation": "题目解析",
       "points": 10,
       "difficulty": "easy/medium/hard"
@@ -740,6 +744,11 @@ class AIService:
   ]
 }}
 ```
+
+**重要说明：**
+- 选择题的options必须是字典格式：{{"A": "选项内容", "B": "选项内容", ...}}
+- 选择题的correct_answer必须是字母：A、B、C、D中的一个
+- 填空题和问答题的correct_answer是具体的答案内容
 
 **特殊要求：**
 {additional_requirements if additional_requirements else "无特殊要求"}
@@ -876,8 +885,8 @@ class AIService:
             "multiple_choice": [
                 {
                     "question_text": f"关于{topic}，下列说法正确的是？",
-                    "options": ["选项A", "选项B", "选项C", "选项D"],
-                    "correct_answer": "选项A",
+                    "options": {"A": "选项A", "B": "选项B", "C": "选项C", "D": "选项D"},
+                    "correct_answer": "A",  # 使用字母格式
                     "explanation": f"根据{topic}的相关知识，选项A是正确的。"
                 }
             ],
@@ -921,3 +930,42 @@ class AIService:
                 questions.append(question)
 
         return {"questions": questions}
+
+    def _normalize_question_format(self, questions: List[Dict]) -> List[Dict]:
+        """标准化题目格式，确保选择题使用正确的格式"""
+        normalized_questions = []
+
+        for question in questions:
+            normalized_question = question.copy()
+
+            # 处理选择题格式
+            if question.get("question_type") == "multiple_choice":
+                options = question.get("options")
+                correct_answer = question.get("correct_answer")
+
+                # 如果选项是数组格式，转换为字典格式
+                if isinstance(options, list):
+                    options_dict = {}
+                    for i, option in enumerate(options):
+                        letter = chr(65 + i)  # A, B, C, D
+                        options_dict[letter] = option
+
+                    normalized_question["options"] = options_dict
+
+                    # 如果答案是完整选项内容，转换为字母
+                    if correct_answer in options:
+                        letter_index = options.index(correct_answer)
+                        normalized_question["correct_answer"] = chr(65 + letter_index)
+
+                # 如果选项已经是字典格式，检查答案格式
+                elif isinstance(options, dict):
+                    # 如果答案是完整选项内容，转换为字母
+                    if correct_answer not in ["A", "B", "C", "D"]:
+                        for letter, option_text in options.items():
+                            if option_text == correct_answer:
+                                normalized_question["correct_answer"] = letter
+                                break
+
+            normalized_questions.append(normalized_question)
+
+        return normalized_questions

@@ -60,20 +60,20 @@ class ModuleReconstructor:
     def reconstruct_course_module(self):
         """重构课程管理模块"""
         print("📚 重构课程管理模块...")
-        
+
         # 导入课程相关模型
-        from app.models.course import Course, Lesson, CourseEnrollment, LessonProgress, CourseCategory, StudyPlan
-        
+        from app.models.course import Course, Lesson, CourseEnrollment, LessonProgress
+
         # 创建课程相关表
-        tables_to_create = [CourseCategory, Course, Lesson, CourseEnrollment, LessonProgress, StudyPlan]
-        
+        tables_to_create = [Course, Lesson, CourseEnrollment, LessonProgress]
+
         for table in tables_to_create:
             table.__table__.create(engine, checkfirst=True)
             print(f"✅ 创建表: {table.__tablename__}")
-        
+
         # 创建默认课程数据
         self._create_default_courses()
-        
+
         print("✅ 课程管理模块重构完成")
     
     def reconstruct_exercise_module(self):
@@ -206,42 +206,101 @@ class ModuleReconstructor:
     def _create_default_courses(self):
         """创建默认课程数据"""
         print("📚 创建默认课程数据...")
-        
-        from database.connection import SessionLocal
-        from app.models.course import CourseCategory, Course
+
+        from app.core.database import SessionLocal
+        from app.models.course import Course, Lesson
         from app.models.user import User
-        
+
         db = SessionLocal()
         try:
-            # 创建课程分类
-            category = CourseCategory(
-                name="计算机科学",
-                description="计算机科学相关课程",
-                is_active=True
-            )
-            db.add(category)
-            db.flush()
-            
             # 获取教师用户
             teacher = db.query(User).filter(User.username == "teacher1").first()
-            if teacher:
-                # 创建示例课程
-                course = Course(
-                    title="Python编程基础",
-                    description="学习Python编程语言的基础知识",
-                    teacher_id=teacher.id,
-                    category_id=category.id,
-                    difficulty_level="beginner",
-                    is_published=True
+            if not teacher:
+                print("❌ 未找到教师用户teacher1，跳过课程创建")
+                print("💡 请先运行: python module_reconstructor.py auth")
+                return
+
+            # 检查是否已存在示例课程
+            existing_course = db.query(Course).filter(Course.title == "Python编程基础").first()
+            if existing_course:
+                print("ℹ️  示例课程已存在: Python编程基础")
+                return
+
+            # 创建示例课程
+            course = Course(
+                title="Python编程基础",
+                description="学习Python编程语言的基础知识，适合初学者入门",
+                cover_image="https://example.com/python-course.jpg",
+                category="编程语言",
+                difficulty="easy",
+                duration=1200,  # 20小时
+                total_lessons=0,
+                instructor_id=teacher.id,
+                instructor_name=teacher.username,
+                enrolled_students=0,
+                rating=4.5,
+                rating_count=0,
+                is_active=True,
+                is_published=True
+            )
+            db.add(course)
+            db.flush()
+
+            # 创建示例课时
+            lessons_data = [
+                {
+                    "title": "Python环境搭建",
+                    "description": "学习如何安装和配置Python开发环境",
+                    "content": "本课时将介绍Python的安装过程...",
+                    "lesson_order": 1,
+                    "duration": 30,
+                    "lesson_type": "video"
+                },
+                {
+                    "title": "Python基础语法",
+                    "description": "学习Python的基本语法规则",
+                    "content": "Python语法简洁明了...",
+                    "lesson_order": 2,
+                    "duration": 45,
+                    "lesson_type": "video"
+                },
+                {
+                    "title": "变量和数据类型",
+                    "description": "了解Python中的变量定义和数据类型",
+                    "content": "Python支持多种数据类型...",
+                    "lesson_order": 3,
+                    "duration": 40,
+                    "lesson_type": "interactive"
+                }
+            ]
+
+            for lesson_data in lessons_data:
+                lesson = Lesson(
+                    course_id=course.id,
+                    title=lesson_data["title"],
+                    description=lesson_data["description"],
+                    content=lesson_data["content"],
+                    lesson_order=lesson_data["lesson_order"],
+                    duration=lesson_data["duration"],
+                    lesson_type=lesson_data["lesson_type"],
+                    is_published=True,
+                    is_free=lesson_data["lesson_order"] == 1  # 第一课时免费
                 )
-                db.add(course)
-            
+                db.add(lesson)
+
+            # 更新课程的总课时数
+            course.total_lessons = len(lessons_data)
+
             db.commit()
-            print("✅ 默认课程创建完成")
-            
+            print("✅ 默认课程和课时创建完成")
+            print(f"   课程: {course.title}")
+            print(f"   课时数: {course.total_lessons}")
+
         except Exception as e:
             db.rollback()
             print(f"❌ 创建默认课程失败: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
             db.close()
     

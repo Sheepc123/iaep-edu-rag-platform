@@ -155,16 +155,22 @@ class ExerciseService:
         
         return True
 
-    def get_course_exercises(self, course_id: int) -> List[Exercise]:
+    def get_course_exercises(self, course_id: int, user_role: str = None) -> List[Exercise]:
         """获取指定课程的练习列表"""
-        exercises = self.db.query(Exercise).filter(
+        query = self.db.query(Exercise).options(
+            joinedload(Exercise.questions)
+        ).filter(
             and_(
                 Exercise.course_id == course_id,
-                Exercise.is_active == True,
-                Exercise.is_published == True
+                Exercise.is_active == True
             )
-        ).order_by(desc(Exercise.created_at)).all()
+        )
 
+        # 学生只能看到已发布的练习，教师可以看到所有练习
+        if user_role == "student":
+            query = query.filter(Exercise.is_published == True)
+
+        exercises = query.order_by(desc(Exercise.created_at)).all()
         return exercises
 
     # ==================== 题目管理 ====================

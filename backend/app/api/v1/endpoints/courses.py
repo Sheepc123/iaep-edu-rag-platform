@@ -8,12 +8,13 @@ from loguru import logger
 
 from ....core.database import get_db
 from ....schemas.course import (
-    CourseCreate, CourseUpdate, CourseResponse, CourseListQuery,
+    CourseCreate, CourseUpdate, CourseResponse, CourseListResponse, CourseListQuery,
     LessonCreate, LessonUpdate, LessonResponse,
     CourseEnrollRequest, CourseEnrollResponse,
     LessonProgressUpdate, LessonProgressResponse,
     CourseRatingCreate, CourseStatistics
 )
+from ....schemas.exercise import ExerciseResponse
 from ....services.course_service import CourseService
 from ....services.course_service import LessonService
 from ....services.exercise_service import ExerciseService
@@ -109,6 +110,10 @@ async def get_courses(
         # 将Course模型转换为CourseResponse格式
         course_responses = []
         for course in courses:
+            # 获取教师真实姓名
+            instructor = db.query(User).filter(User.id == course.instructor_id).first()
+            instructor_display_name = instructor.full_name if instructor and instructor.full_name else course.instructor_name
+
             course_responses.append({
                 "id": course.id,
                 "title": course.title,
@@ -119,7 +124,7 @@ async def get_courses(
                 "duration": course.duration,
                 "total_lessons": course.total_lessons,
                 "instructor_id": course.instructor_id,
-                "instructor_name": course.instructor_name,
+                "instructor_name": instructor_display_name,
                 "enrolled_students": course.enrolled_students,
                 "rating": course.rating,
                 "rating_count": course.rating_count,
@@ -581,7 +586,7 @@ async def get_course_statistics(
 
 # ==================== 教师端API端点 ====================
 
-@router.get("/teacher/courses", response_model=List[CourseResponse], summary="获取教师课程列表")
+@router.get("/teacher/courses", response_model=CourseListResponse, summary="获取教师课程列表")
 async def get_teacher_courses(
     skip: int = Query(0, ge=0, description="跳过的记录数"),
     limit: int = Query(100, ge=1, le=100, description="返回的记录数"),
@@ -603,7 +608,12 @@ async def get_teacher_courses(
             is_published=is_published
         )
 
-        return courses
+        return CourseListResponse(
+            courses=courses,
+            total=total,
+            skip=skip,
+            limit=limit
+        )
 
     except HTTPException as e:
         raise e
@@ -775,11 +785,43 @@ async def get_course_exercises(
 ) -> Any:
     """
     获取指定课程的练习列表
+    - 教师可以看到所有练习（包括草稿）
+    - 学生只能看到已发布的练习
     """
     try:
         exercise_service = ExerciseService(db)
-        exercises = exercise_service.get_course_exercises(course_id)
-        return {"exercises": exercises}
+        exercises = exercise_service.get_course_exercises(course_id, current_user.role)
+
+        # 将SQLAlchemy模型转换为字典，确保所有字段都能正确序列化
+        exercises_data = []
+        for exercise in exercises:
+            # 计算总分（基于题目分数）
+            total_points = 0
+            if hasattr(exercise, 'questions') and exercise.questions:
+                total_points = sum(q.points for q in exercise.questions if q.points)
+
+            exercise_dict = {
+                "id": exercise.id,
+                "title": exercise.title or "",
+                "description": exercise.description or "",
+                "category": exercise.category or "practice",
+                "subject": exercise.subject or "",
+                "difficulty": exercise.difficulty or "medium",
+                "time_limit": exercise.time_limit,
+                "total_questions": exercise.total_questions or 0,
+                "total_points": float(total_points),
+                "total_attempts": exercise.total_attempts or 0,
+                "average_score": float(exercise.average_score or 0.0),
+                "is_published": bool(exercise.is_published),
+                "is_active": bool(exercise.is_active),
+                "created_at": exercise.created_at.isoformat() if exercise.created_at else None,
+                "updated_at": exercise.updated_at.isoformat() if exercise.updated_at else None,
+                "created_by": exercise.created_by,
+                "course_id": exercise.course_id
+            }
+            exercises_data.append(exercise_dict)
+
+        return {"exercises": exercises_data}
 
     except HTTPException as e:
         raise e

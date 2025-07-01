@@ -2,7 +2,7 @@
 练习系统数据验证模式
 """
 from pydantic import BaseModel, Field, validator
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 from enum import Enum
 import json
@@ -45,7 +45,7 @@ class QuestionBase(BaseModel):
     title: Optional[str] = Field(None, max_length=200, description="题目标题")
     content: str = Field(..., description="题目内容")
     question_type: QuestionType = Field(..., description="题目类型")
-    options: Optional[List[str]] = Field(None, description="选择题选项")
+    options: Optional[Union[List[str], Dict[str, str]]] = Field(None, description="选择题选项")
     correct_answer: str = Field(..., description="正确答案")
     explanation: Optional[str] = Field(None, description="答案解析")
     difficulty: DifficultyLevel = Field(DifficultyLevel.MEDIUM, description="难度级别")
@@ -72,7 +72,7 @@ class QuestionUpdate(BaseModel):
     title: Optional[str] = Field(None, max_length=200)
     content: Optional[str] = None
     question_type: Optional[QuestionType] = None
-    options: Optional[List[str]] = None
+    options: Optional[Union[List[str], Dict[str, str]]] = None
     correct_answer: Optional[str] = None
     explanation: Optional[str] = None
     difficulty: Optional[DifficultyLevel] = None

@@ -2,7 +2,7 @@
 AI助手相关的Pydantic模型
 """
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 from enum import Enum
 
@@ -168,7 +168,7 @@ class GeneratedQuestion(BaseModel):
     """生成的题目模型"""
     question_text: str = Field(..., description="题目内容")
     question_type: str = Field(..., description="题目类型")
-    options: Optional[List[str]] = Field(None, description="选择题选项")
+    options: Optional[Union[List[str], Dict[str, str]]] = Field(None, description="选择题选项")
     correct_answer: str = Field(..., description="正确答案")
     explanation: str = Field(..., description="题目解析")
     points: int = Field(10, description="题目分值")
@@ -208,8 +208,8 @@ class QuestionGenerationResponse(BaseModel):
                     {
                         "question_text": "函数f(x)=x²在x=2处的极限值是？",
                         "question_type": "multiple_choice",
-                        "options": ["2", "4", "8", "不存在"],
-                        "correct_answer": "4",
+                        "options": {"A": "2", "B": "4", "C": "8", "D": "不存在"},
+                        "correct_answer": "B",
                         "explanation": "根据极限的定义，当x趋向于2时，f(x)=x²的极限值为2²=4",
                         "points": 10,
                         "difficulty": "medium"
