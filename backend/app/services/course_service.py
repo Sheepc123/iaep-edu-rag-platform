@@ -502,6 +502,129 @@ class CourseService:
                 course.rating_count = len(ratings)
             
         self.db.commit()
+
+    def get_course_students(self, course_id: int, teacher_id: int) -> List[dict]:
+        """获取课程的学生列表"""
+        try:
+            # 验证教师权限
+            course = self.get_teacher_course_detail(course_id, teacher_id)
+
+            # 检查course_enrollments表是否存在数据
+            enrollment_count = self.db.query(CourseEnrollment).filter(
+                CourseEnrollment.course_id == course_id
+            ).count()
+
+            if enrollment_count == 0:
+                # 如果没有注册数据，返回空列表
+                return []
+
+            # 获取课程注册的学生信息
+            students = self.db.query(
+                User.id,
+                User.username,
+                User.full_name,
+                User.email,
+                User.avatar,
+                CourseEnrollment.enrolled_at,
+                CourseEnrollment.progress_percentage,
+                CourseEnrollment.completed_lessons,
+                CourseEnrollment.total_study_time,
+                CourseEnrollment.is_completed,
+                CourseEnrollment.last_accessed
+            ).join(
+                CourseEnrollment, User.id == CourseEnrollment.student_id
+            ).filter(
+                and_(
+                    CourseEnrollment.course_id == course_id,
+                    CourseEnrollment.is_active == True
+                )
+            ).order_by(CourseEnrollment.enrolled_at.desc()).all()
+
+            return [
+                {
+                    "id": student.id,
+                    "username": student.username,
+                    "full_name": student.full_name,
+                    "email": student.email,
+                    "avatar_url": student.avatar,  # 使用avatar字段但返回为avatar_url
+                    "enrolled_at": student.enrolled_at.isoformat() if student.enrolled_at else None,
+                    "progress_percentage": student.progress_percentage,
+                    "completed_lessons": student.completed_lessons,
+                    "total_study_time": student.total_study_time,
+                    "is_completed": student.is_completed,
+                    "last_accessed_at": student.last_accessed.isoformat() if student.last_accessed else None
+                }
+                for student in students
+            ]
+        except HTTPException:
+            # 重新抛出HTTP异常
+            raise
+        except Exception as e:
+            # 记录详细错误信息
+            print(f"获取课程学生列表时发生错误: {str(e)}")
+            # 如果是数据库表不存在的错误，返回空列表而不是抛出异常
+            if "no such table" in str(e).lower() or "table doesn't exist" in str(e).lower():
+                return []
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"获取学生列表失败: {str(e)}"
+            )
+
+    def remove_student_from_course(self, course_id: int, student_id: int, teacher_id: int) -> bool:
+        """从课程中移除学生"""
+        # 验证教师权限
+        course = self.get_teacher_course_detail(course_id, teacher_id)
+
+        # 查找注册记录
+        enrollment = self.db.query(CourseEnrollment).filter(
+            and_(
+                CourseEnrollment.course_id == course_id,
+                CourseEnrollment.student_id == student_id,
+                CourseEnrollment.is_active == True
+            )
+        ).first()
+
+        if not enrollment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="学生未注册此课程"
+            )
+
+        # 设置为非活跃状态（软删除）
+        enrollment.is_active = False
+
+        # 更新课程注册人数
+        course.enrolled_students = max(0, course.enrolled_students - 1)
+
+        self.db.commit()
+        return True
+
+    def get_course_files(self, course_id: int, teacher_id: int) -> List[dict]:
+        """获取课程相关文件列表"""
+        # 验证教师权限
+        course = self.get_teacher_course_detail(course_id, teacher_id)
+
+        # 这里可以从知识库或文件系统获取课程相关文件
+        # 暂时返回空列表，后续可以集成知识库系统
+        return []
+
+    def upload_course_file(self, course_id: int, teacher_id: int, file_info: dict) -> dict:
+        """上传课程文件"""
+        # 验证教师权限
+        course = self.get_teacher_course_detail(course_id, teacher_id)
+
+        # 这里可以集成文件上传逻辑
+        # 暂时返回文件信息
+        return file_info
+
+    def delete_course_file(self, course_id: int, teacher_id: int, file_id: str) -> bool:
+        """删除课程文件"""
+        # 验证教师权限
+        course = self.get_teacher_course_detail(course_id, teacher_id)
+
+        # 这里可以集成文件删除逻辑
+        # 暂时返回成功
+        return True
     
     def get_course_statistics(self, instructor_id: Optional[int] = None) -> dict:
         """获取课程统计信息"""

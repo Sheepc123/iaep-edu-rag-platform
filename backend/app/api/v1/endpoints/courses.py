@@ -753,6 +753,141 @@ async def toggle_course_publish(
         )
 
 
+@router.get("/teacher/courses/{course_id}/students", response_model=List[dict], summary="获取课程学生列表")
+async def get_course_students(
+    course_id: int,
+    current_user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db)
+) -> Any:
+    """获取课程的学生列表（教师功能）"""
+    try:
+        course_service = CourseService(db)
+        students = course_service.get_course_students(course_id, current_user.id)
+
+        logger.info(f"教师 {current_user.id} 查看了课程 {course_id} 的学生列表")
+        return students
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"获取课程学生列表失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取学生列表失败"
+        )
+
+
+@router.delete("/teacher/courses/{course_id}/students/{student_id}", response_model=dict, summary="移除课程学生")
+async def remove_course_student(
+    course_id: int,
+    student_id: int,
+    current_user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db)
+) -> Any:
+    """从课程中移除学生（教师功能）"""
+    try:
+        course_service = CourseService(db)
+        success = course_service.remove_student_from_course(course_id, student_id, current_user.id)
+
+        if success:
+            logger.info(f"教师 {current_user.id} 从课程 {course_id} 中移除了学生 {student_id}")
+            return {"message": "学生已成功移除", "success": True}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="移除学生失败"
+            )
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"移除课程学生失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="移除学生失败"
+        )
+
+
+@router.get("/teacher/courses/{course_id}/files", response_model=List[dict], summary="获取课程文件列表")
+async def get_course_files(
+    course_id: int,
+    current_user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db)
+) -> Any:
+    """获取课程相关文件列表（教师功能）"""
+    try:
+        course_service = CourseService(db)
+        files = course_service.get_course_files(course_id, current_user.id)
+
+        logger.info(f"教师 {current_user.id} 查看了课程 {course_id} 的文件列表")
+        return files
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"获取课程文件列表失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取文件列表失败"
+        )
+
+
+@router.post("/teacher/courses/{course_id}/files", response_model=dict, summary="上传课程文件")
+async def upload_course_file(
+    course_id: int,
+    file_info: dict,
+    current_user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db)
+) -> Any:
+    """上传课程文件（教师功能）"""
+    try:
+        course_service = CourseService(db)
+        result = course_service.upload_course_file(course_id, current_user.id, file_info)
+
+        logger.info(f"教师 {current_user.id} 为课程 {course_id} 上传了文件")
+        return result
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"上传课程文件失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="上传文件失败"
+        )
+
+
+@router.delete("/teacher/courses/{course_id}/files/{file_id}", response_model=dict, summary="删除课程文件")
+async def delete_course_file(
+    course_id: int,
+    file_id: str,
+    current_user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db)
+) -> Any:
+    """删除课程文件（教师功能）"""
+    try:
+        course_service = CourseService(db)
+        success = course_service.delete_course_file(course_id, current_user.id, file_id)
+
+        if success:
+            logger.info(f"教师 {current_user.id} 删除了课程 {course_id} 的文件 {file_id}")
+            return {"message": "文件已成功删除", "success": True}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="删除文件失败"
+            )
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"删除课程文件失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="删除文件失败"
+        )
+
+
 @router.get("/teacher/statistics", response_model=dict, summary="获取教师课程统计")
 async def get_teacher_course_statistics(
     current_user: User = Depends(get_current_teacher),
