@@ -183,11 +183,19 @@ def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
     return AuthService(db)
 
 
-def get_pagination_params(skip: int = 0, limit: int = 100):
+def get_pagination_params(
+    page: int = 1,
+    size: int = 20
+):
     """获取分页参数"""
-    if skip < 0:
-        skip = 0
-    if limit <= 0 or limit > 1000:
-        limit = 100
-    
-    return {"skip": skip, "limit": limit}
+    if page < 1:
+        page = 1
+    if size <= 0 or size > 100:
+        size = 20
+
+    skip = (page - 1) * size
+    return {
+        "page": page,
+        "limit": size,
+        "skip": skip
+    }

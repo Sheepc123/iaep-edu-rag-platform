@@ -24,7 +24,8 @@ import {
   Edit,
   Trash2,
   MoreHorizontal,
-  PlusCircle
+  PlusCircle,
+  Globe
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -119,7 +120,7 @@ export const TeacherCourses = () => {
     }
 
     try {
-      await courseAPI.deleteCourse(courseId);
+      await teacherAPI.deleteCourse(courseId);
       toast({
         title: "删除成功",
         description: "课程已成功删除",
@@ -130,6 +131,41 @@ export const TeacherCourses = () => {
       toast({
         title: "删除失败",
         description: "无法删除课程，请稍后重试",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTogglePublish = async (courseId: number, currentStatus: boolean) => {
+    // 如果是要发布课程，先确认
+    if (!currentStatus) {
+      const confirmed = confirm(
+        '确定要发布此课程吗？\n\n发布后学生将可以看到并注册此课程。\n请确保课程内容已完善。'
+      );
+      if (!confirmed) return;
+    }
+
+    try {
+      await teacherAPI.toggleCoursePublish(courseId);
+      toast({
+        title: "成功",
+        description: currentStatus ? "课程已取消发布" : "课程已发布",
+      });
+      fetchCourses();
+    } catch (error: any) {
+      console.error('切换发布状态失败:', error);
+
+      // 处理特定的错误消息
+      let errorMessage = "无法切换发布状态，请重试";
+      if (error.message?.includes("课程至少需要包含一个课时")) {
+        errorMessage = "课程至少需要包含一个课时才能发布。请先添加课程内容。";
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+
+      toast({
+        title: "发布失败",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -189,7 +225,11 @@ export const TeacherCourses = () => {
           {courses.length > 0 ? (
             courses.map((course) => (
               <motion.div key={course.id} variants={cardVariants}>
-                <CourseCard course={course} onDelete={handleDelete} />
+                <CourseCard
+                  course={course}
+                  onDelete={handleDelete}
+                  onTogglePublish={handleTogglePublish}
+                />
               </motion.div>
             ))
           ) : (
@@ -301,7 +341,15 @@ const FiltersSection = ({
 };
 
 // Course Card Component
-const CourseCard = ({ course, onDelete }: { course: Course; onDelete: (id: number) => void }) => {
+const CourseCard = ({
+  course,
+  onDelete,
+  onTogglePublish
+}: {
+  course: Course;
+  onDelete: (id: number) => void;
+  onTogglePublish: (id: number, currentStatus: boolean) => void;
+}) => {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'easy': return 'bg-green-100 text-green-800';
@@ -376,7 +424,18 @@ const CourseCard = ({ course, onDelete }: { course: Course; onDelete: (id: numbe
               查看
             </Link>
           </Button>
-          <Button asChild size="sm" variant="outline" className="flex-1">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onTogglePublish(course.id, course.is_published)}
+            className={`flex-1 ${
+              course.is_published
+                ? 'text-orange-600 hover:text-orange-700 hover:bg-orange-50'
+                : 'text-green-600 hover:text-green-700 hover:bg-green-50'
+            }`}
+          >
+            <Globe className="mr-1 w-3 h-3" />
+            {course.is_published ? '取消' : '发布'}
           </Button>
           <Button
             size="sm"

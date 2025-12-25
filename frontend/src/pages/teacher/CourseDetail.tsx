@@ -34,7 +34,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
-import { courseAPI, exerciseAPI, Course, Lesson, Exercise } from "@/services/api";
+import { courseAPI, exerciseAPI, teacherAPI, Course, Lesson, Exercise } from "@/services/api";
 
 // Animation variants
 const containerVariants = {
@@ -215,6 +215,30 @@ export const TeacherCourseDetail = () => {
     navigate(`/teacher/courses/${courseId}/settings`);
   };
 
+  // 切换发布状态
+  const handleTogglePublish = async () => {
+    if (!courseId || !course) return;
+
+    try {
+      const updatedCourse = await teacherAPI.toggleCoursePublish(parseInt(courseId));
+
+      // 更新本地状态
+      setCourse(updatedCourse);
+
+      toast({
+        title: "成功",
+        description: updatedCourse.is_published ? "课程已发布" : "课程已取消发布"
+      });
+    } catch (error: any) {
+      console.error('切换发布状态失败:', error);
+      toast({
+        title: "操作失败",
+        description: error.response?.data?.detail || "无法切换发布状态，请重试",
+        variant: "destructive"
+      });
+    }
+  };
+
   // 格式化时长
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -321,6 +345,18 @@ export const TeacherCourseDetail = () => {
 
                     {/* 教师操作按钮 */}
                     <div className="flex items-center space-x-3">
+                      <Button
+                        variant="outline"
+                        onClick={handleTogglePublish}
+                        className={`border-white/20 text-white hover:bg-white/20 ${
+                          course.is_published
+                            ? 'bg-green-500/20 hover:bg-green-500/30'
+                            : 'bg-orange-500/20 hover:bg-orange-500/30'
+                        }`}
+                      >
+                        <Globe className="w-4 h-4 mr-2" />
+                        {course.is_published ? '取消发布' : '发布课程'}
+                      </Button>
                       <Button
                         variant="outline"
                         onClick={handleEditCourse}

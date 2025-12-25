@@ -77,20 +77,30 @@ export const LoginForm = ({ role, onBack }: LoginFormProps) => {
         description: `欢迎回来，${response.user_info.full_name}！`,
       });
 
-      // 根据用户实际角色跳转
-      switch (userRole) {
-        case "student":
-          navigate("/student/dashboard");
-          break;
-        case "teacher":
-          navigate("/teacher/dashboard");
-          break;
-        case "admin":
-          // 管理员可以选择进入教师端或学生端，默认进入教师端
-          navigate("/teacher/dashboard");
-          break;
-        default:
-          navigate("/");
+      // 根据用户实际角色和选择的角色跳转
+      if (role === "administrator" && userRole === "admin") {
+        // 如果选择的是管理员角色且用户确实是管理员，跳转到管理员端
+        navigate("/admin/dashboard");
+      } else {
+        // 其他情况按用户实际角色跳转
+        switch (userRole) {
+          case "student":
+            navigate("/student/dashboard");
+            break;
+          case "teacher":
+            navigate("/teacher/dashboard");
+            break;
+          case "admin":
+            // 管理员选择学生或教师角色时，跳转到对应端
+            if (role === "student") {
+              navigate("/student/dashboard");
+            } else {
+              navigate("/teacher/dashboard");
+            }
+            break;
+          default:
+            navigate("/");
+        }
       }
 
     } catch (error: any) {

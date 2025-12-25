@@ -283,6 +283,82 @@ export class KnowledgeAPI {
 
     return await response.json();
   }
+
+  /**
+   * 基于知识库生成课程
+   */
+  static async generateCourse(data: {
+    topic: string;
+    knowledge_doc_ids?: string;
+    course_level: string;
+    lesson_count: number;
+    auto_save: boolean;
+  }): Promise<any> {
+    const formData = new FormData();
+    formData.append('topic', data.topic);
+    if (data.knowledge_doc_ids) {
+      formData.append('knowledge_doc_ids', data.knowledge_doc_ids);
+    }
+    formData.append('course_level', data.course_level);
+    formData.append('lesson_count', data.lesson_count.toString());
+    formData.append('auto_save', data.auto_save.toString());
+
+    const response = await fetch(`${API_BASE_URL}/generate-course`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`课程生成失败: ${response.status} - ${errorText}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * 基于知识库生成习题
+   */
+  static async generateExercise(data: {
+    topic: string;
+    knowledge_doc_ids?: string;
+    exercise_types: string;
+    difficulty: string;
+    question_count: number;
+    auto_save: boolean;
+    course_id?: number;
+    exercise_category?: string;
+  }): Promise<any> {
+    const formData = new FormData();
+    formData.append('topic', data.topic);
+    if (data.knowledge_doc_ids) {
+      formData.append('knowledge_doc_ids', data.knowledge_doc_ids);
+    }
+    formData.append('exercise_types', data.exercise_types);
+    formData.append('difficulty', data.difficulty);
+    formData.append('question_count', data.question_count.toString());
+    formData.append('auto_save', data.auto_save.toString());
+    if (data.course_id) {
+      formData.append('course_id', data.course_id.toString());
+    }
+    if (data.exercise_category) {
+      formData.append('exercise_category', data.exercise_category);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/generate-exercises`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`习题生成失败: ${response.status} - ${errorText}`);
+    }
+
+    return await response.json();
+  }
 }
 
 // 导出默认实例

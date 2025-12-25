@@ -261,11 +261,6 @@ CREATE INDEX idx_answers_attempt_question ON student_answers(attempt_id, questio
 - 统计数据使用缓存，定期更新
 - 题目内容使用预加载，提高答题体验
 
-### 缓存策略
-- **习题列表**: Redis缓存热门习题，TTL 30分钟
-- **题目内容**: 缓存题目详情，TTL 1小时
-- **答题进度**: 内存缓存当前答题状态，定期同步数据库
-- **统计数据**: 缓存习题统计信息，每小时更新
 
 ## 扩展功能
 

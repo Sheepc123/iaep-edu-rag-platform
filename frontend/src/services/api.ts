@@ -1256,7 +1256,7 @@ export const teacherAPI = {
 
   // 删除课程
   async deleteCourse(courseId: number): Promise<{ message: string }> {
-    return apiRequest(`/courses/${courseId}`, {
+    return apiRequest(`/courses/teacher/courses/${courseId}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -1356,6 +1356,14 @@ export const teacherAPI = {
       headers: getAuthHeaders(),
     });
   },
+
+  // 切换课程发布状态
+  async toggleCoursePublish(courseId: number): Promise<Course> {
+    return apiRequest(`/courses/teacher/courses/${courseId}/toggle-publish`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
 };
 
 // 健康检查
@@ -1363,5 +1371,168 @@ export const healthAPI = {
   async check(): Promise<any> {
     const response = await fetch('http://127.0.0.1:8000/health');
     return response.json();
+  },
+};
+
+// 管理员API
+export const adminAPI = {
+  // 获取仪表板统计
+  async getDashboardStats(): Promise<any> {
+    return apiRequest('/admin/dashboard/stats', {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 获取用户列表
+  async getUsers(params?: {
+    page?: number;
+    size?: number;
+    role?: string;
+    is_active?: boolean;
+    search?: string;
+  }): Promise<any> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.size) searchParams.append('size', params.size.toString());
+    if (params?.role) searchParams.append('role', params.role);
+    if (params?.is_active !== undefined) searchParams.append('is_active', params.is_active.toString());
+    if (params?.search) searchParams.append('search', params.search);
+
+    return apiRequest(`/admin/users?${searchParams.toString()}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 创建用户
+  async createUser(userData: {
+    username: string;
+    email: string;
+    password: string;
+    full_name: string;
+    phone?: string;
+    role: 'student' | 'teacher';
+  }): Promise<any> {
+    return apiRequest('/admin/users', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(userData),
+    });
+  },
+
+  // 更新用户
+  async updateUser(userId: number, userData: any): Promise<any> {
+    return apiRequest(`/admin/users/${userId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(userData),
+    });
+  },
+
+  // 删除用户
+  async deleteUser(userId: number): Promise<any> {
+    return apiRequest(`/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 切换用户状态
+  async toggleUserStatus(userId: number): Promise<any> {
+    return apiRequest(`/admin/users/${userId}/toggle-status`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 修改用户密码
+  async changeUserPassword(userId: number, newPassword: string): Promise<any> {
+    return apiRequest(`/admin/users/${userId}/change-password`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ new_password: newPassword }),
+    });
+  },
+
+  // 获取用户详细信息（包括敏感信息，仅管理员可用）
+  async getUserDetail(userId: number): Promise<any> {
+    return apiRequest(`/admin/users/${userId}/detail`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 获取AI使用统计
+  async getUsageStats(days: number = 7): Promise<any> {
+    return apiRequest(`/admin/usage-stats?days=${days}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 获取系统统计
+  async getSystemStats(): Promise<any> {
+    return apiRequest('/admin/system/stats', {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 获取最近活动
+  async getRecentActivities(limit: number = 20): Promise<any> {
+    return apiRequest(`/admin/activities?limit=${limit}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 获取所有教师的知识库列表（管理员用）
+  async getAllTeachersKnowledgeBase(params?: {
+    page?: number;
+    size?: number;
+    teacher_id?: number;
+    category?: string;
+    search?: string;
+  }): Promise<any> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.size) searchParams.append('size', params.size.toString());
+    if (params?.teacher_id) searchParams.append('teacher_id', params.teacher_id.toString());
+    if (params?.category) searchParams.append('category', params.category);
+    if (params?.search) searchParams.append('search', params.search);
+
+    return apiRequest(`/admin/knowledge-base/all?${searchParams.toString()}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 获取教师知识库统计
+  async getKnowledgeBaseStats(): Promise<any> {
+    return apiRequest('/admin/knowledge-base/stats', {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 获取知识库详情
+  async getKnowledgeBaseItem(id: number): Promise<any> {
+    return apiRequest(`/admin/knowledge-base/${id}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 删除知识库条目
+  async deleteKnowledgeBaseItem(id: number): Promise<any> {
+    return apiRequest(`/admin/knowledge-base/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // 更新知识库条目状态
+  async updateKnowledgeBaseItem(id: number, data: {
+    is_public?: boolean;
+    category?: string;
+    tags?: string[];
+  }): Promise<any> {
+    return apiRequest(`/admin/knowledge-base/${id}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
   },
 };

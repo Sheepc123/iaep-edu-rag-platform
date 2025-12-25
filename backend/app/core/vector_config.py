@@ -18,12 +18,12 @@ class VectorConfig(BaseSettings):
     EMBEDDING_DIMENSION: int = 384  # MiniLM-L12-v2的维度
     
     # 文本分块配置
-    CHUNK_SIZE: int = 500  # 每个文本块的字符数
-    CHUNK_OVERLAP: int = 50  # 文本块之间的重叠字符数
-    
+    CHUNK_SIZE: int = 1000  # 每个文本块的字符数（增加到1000）
+    CHUNK_OVERLAP: int = 100  # 文本块之间的重叠字符数（增加重叠）
+
     # 搜索配置
-    VECTOR_SEARCH_TOP_K: int = 10  # 向量搜索返回的最大结果数
-    SIMILARITY_THRESHOLD: float = 0.7  # 相似度阈值
+    VECTOR_SEARCH_TOP_K: int = 20  # 向量搜索返回的最大结果数（增加候选数）
+    SIMILARITY_THRESHOLD: float = 0.001  # 相似度阈值（降低阈值）
     
     # OpenAI配置（可选，用于更高质量的嵌入）
     OPENAI_API_KEY: Optional[str] = None

@@ -31,6 +31,16 @@ import { TeacherAIAssistant } from "./pages/teacher/AIAssistant";
 import { TeacherChatRoom } from "./pages/teacher/ChatRoom";
 import { TeacherKnowledgeBase } from "./pages/teacher/KnowledgeBase";
 
+// 管理员页面
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminOverview from './pages/admin/OverviewDashboard';
+import AdminUsers from './pages/admin/Users';
+import AdminUsageStats from './pages/admin/UsageStats';
+import AdminResources from './pages/admin/ResourceManagement';
+import AdminEfficiency from './pages/admin/TeachingEfficiency';
+import AdminTeacherStats from './pages/admin/TeacherStats';
+import AdminStudentStats from './pages/admin/StudentStats';
+
 function App() {
   return (
     <AIProvider>
@@ -69,6 +79,16 @@ function App() {
           <Route path="/teacher/chatroom" element={<TeacherChatRoom />} />
           <Route path="/teacher/ai-assistant" element={<TeacherAIAssistant />} />
           <Route path="/teacher/profile" element={<TeacherProfile />} />
+
+          {/* 管理员页面 */}
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/overview" element={<AdminOverview />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/resources" element={<AdminResources />} />
+          <Route path="/admin/teachers" element={<AdminTeacherStats />} />
+          <Route path="/admin/students" element={<AdminStudentStats />} />
+          <Route path="/admin/usage-stats" element={<AdminUsageStats />} />
+          <Route path="/admin/efficiency" element={<AdminEfficiency />} />
         </Routes>
         <Toaster />
       </Router>

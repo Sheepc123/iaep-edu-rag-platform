@@ -13,7 +13,11 @@ import {
   Plus,
   Sparkles,
   BarChart3,
-  Brain
+  Brain,
+  BookOpen as BookIcon,
+  PenTool,
+  Wand2,
+  Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +52,12 @@ export const TeacherKnowledgeBase = () => {
   const [totalDocuments, setTotalDocuments] = useState(0);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  // AI生成相关状态
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [generateType, setGenerateType] = useState<'course' | 'exercise'>('course');
+  const [selectedDocuments, setSelectedDocuments] = useState<number[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -204,6 +214,96 @@ export const TeacherKnowledgeBase = () => {
     }
   };
 
+  // AI生成课程处理
+  const handleGenerateCourse = async (formData: {
+    topic: string;
+    selectedDocs: number[];
+    courseLevel: string;
+    lessonCount: number;
+    autoSave: boolean;
+  }) => {
+    try {
+      setIsGenerating(true);
+
+      const docIds = formData.selectedDocs.length > 0 ? formData.selectedDocs.join(',') : undefined;
+
+      const result = await KnowledgeAPI.generateCourse({
+        topic: formData.topic,
+        knowledge_doc_ids: docIds,
+        course_level: formData.courseLevel,
+        lesson_count: formData.lessonCount,
+        auto_save: formData.autoSave
+      });
+
+      toast({
+        title: "课程生成成功",
+        description: formData.autoSave
+          ? `课程"${result.course_data.title}"已保存到课程管理`
+          : "课程已生成，请查看预览结果"
+      });
+
+      setShowGenerateModal(false);
+
+    } catch (error) {
+      console.error('课程生成失败:', error);
+      toast({
+        title: "生成失败",
+        description: error instanceof Error ? error.message : "课程生成失败，请重试",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // AI生成习题处理
+  const handleGenerateExercise = async (formData: {
+    topic: string;
+    selectedDocs: number[];
+    exerciseTypes: string[];
+    difficulty: string;
+    questionCount: number;
+    autoSave: boolean;
+    courseId?: number;
+    exerciseCategory: string;
+  }) => {
+    try {
+      setIsGenerating(true);
+
+      const docIds = formData.selectedDocs.length > 0 ? formData.selectedDocs.join(',') : undefined;
+
+      const result = await KnowledgeAPI.generateExercise({
+        topic: formData.topic,
+        knowledge_doc_ids: docIds,
+        exercise_types: formData.exerciseTypes.join(','),
+        difficulty: formData.difficulty,
+        question_count: formData.questionCount,
+        auto_save: formData.autoSave,
+        course_id: formData.courseId,
+        exercise_category: formData.exerciseCategory
+      });
+
+      toast({
+        title: "习题生成成功",
+        description: formData.autoSave
+          ? `习题集"${result.exercise_data.title}"已保存到练习管理`
+          : "习题已生成，请查看预览结果"
+      });
+
+      setShowGenerateModal(false);
+
+    } catch (error) {
+      console.error('习题生成失败:', error);
+      toast({
+        title: "生成失败",
+        description: error instanceof Error ? error.message : "习题生成失败，请重试",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   // 计算统计信息
   const totalSize = documents.reduce((sum, doc) => sum + doc.file_size, 0);
   const categoryStats = DOCUMENT_CATEGORIES.map(cat => ({
@@ -226,6 +326,35 @@ export const TeacherKnowledgeBase = () => {
             </div>
             
             <div className="flex items-center space-x-3">
+              {/* AI生成按钮组 */}
+              <div className="flex items-center space-x-2">
+                <Button
+                  onClick={() => {
+                    setGenerateType('course');
+                    setShowGenerateModal(true);
+                  }}
+                  variant="outline"
+                  className="flex items-center space-x-2 border-green-200 text-green-700 hover:bg-green-50"
+                  disabled={documents.length === 0}
+                >
+                  <BookIcon className="w-4 h-4" />
+                  <span>AI生成课程</span>
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    setGenerateType('exercise');
+                    setShowGenerateModal(true);
+                  }}
+                  variant="outline"
+                  className="flex items-center space-x-2 border-orange-200 text-orange-700 hover:bg-orange-50"
+                  disabled={documents.length === 0}
+                >
+                  <PenTool className="w-4 h-4" />
+                  <span>AI生成习题</span>
+                </Button>
+              </div>
+
               <Button
                 onClick={() => setShowUploadModal(true)}
                 className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
@@ -499,6 +628,19 @@ export const TeacherKnowledgeBase = () => {
             isUploading={isUploading}
           />
         )}
+
+        {/* AI生成模态框 */}
+        {showGenerateModal && (
+          <AIGenerateModal
+            isOpen={showGenerateModal}
+            onClose={() => setShowGenerateModal(false)}
+            type={generateType}
+            documents={documents}
+            onGenerateCourse={handleGenerateCourse}
+            onGenerateExercise={handleGenerateExercise}
+            isGenerating={isGenerating}
+          />
+        )}
       </div>
     </TeacherLayout>
   );
@@ -730,6 +872,318 @@ const UploadModal = ({ isOpen, onClose, onUpload, isUploading }: UploadModalProp
                 <>
                   <Upload className="w-4 h-4" />
                   <span>上传文档</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// AI生成模态框组件
+interface AIGenerateModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  type: 'course' | 'exercise';
+  documents: KnowledgeDocument[];
+  onGenerateCourse: (formData: {
+    topic: string;
+    selectedDocs: number[];
+    courseLevel: string;
+    lessonCount: number;
+    autoSave: boolean;
+  }) => void;
+  onGenerateExercise: (formData: {
+    topic: string;
+    selectedDocs: number[];
+    exerciseTypes: string[];
+    difficulty: string;
+    questionCount: number;
+    autoSave: boolean;
+    courseId?: number;
+    exerciseCategory: string;
+  }) => void;
+  isGenerating: boolean;
+}
+
+const AIGenerateModal: React.FC<AIGenerateModalProps> = ({
+  isOpen,
+  onClose,
+  type,
+  documents,
+  onGenerateCourse,
+  onGenerateExercise,
+  isGenerating
+}) => {
+  const [topic, setTopic] = useState('');
+  const [selectedDocs, setSelectedDocs] = useState<number[]>([]);
+  const [courseLevel, setCourseLevel] = useState('medium');
+  const [lessonCount, setLessonCount] = useState(8);
+  const [exerciseTypes, setExerciseTypes] = useState<string[]>(['multiple_choice', 'fill_blank']);
+  const [difficulty, setDifficulty] = useState('medium');
+  const [questionCount, setQuestionCount] = useState(10);
+  const [autoSave, setAutoSave] = useState(true);
+  const [courseId, setCourseId] = useState<number | undefined>();
+  const [exerciseCategory, setExerciseCategory] = useState('自主练习');
+
+  const handleSubmit = () => {
+    if (!topic.trim()) {
+      return;
+    }
+
+    if (type === 'course') {
+      onGenerateCourse({
+        topic: topic.trim(),
+        selectedDocs,
+        courseLevel,
+        lessonCount,
+        autoSave
+      });
+    } else {
+      onGenerateExercise({
+        topic: topic.trim(),
+        selectedDocs,
+        exerciseTypes,
+        difficulty,
+        questionCount,
+        autoSave,
+        courseId,
+        exerciseCategory
+      });
+    }
+  };
+
+  const toggleDocSelection = (docId: number) => {
+    setSelectedDocs(prev =>
+      prev.includes(docId)
+        ? prev.filter(id => id !== docId)
+        : [...prev, docId]
+    );
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold flex items-center">
+              {type === 'course' ? (
+                <>
+                  <Wand2 className="w-5 h-5 mr-2 text-green-600" />
+                  AI生成课程
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-5 h-5 mr-2 text-orange-600" />
+                  AI生成习题
+                </>
+              )}
+            </h2>
+            <Button variant="ghost" onClick={onClose}>
+              ×
+            </Button>
+          </div>
+
+          <div className="space-y-6">
+            {/* 主题输入 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {type === 'course' ? '课程主题' : '习题主题'} *
+              </label>
+              <Input
+                placeholder={type === 'course' ? '例如：Python编程基础' : '例如：Python函数与模块'}
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                className="w-full"
+              />
+            </div>
+
+            {/* 文档选择 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                选择参考文档（可选）
+              </label>
+              <p className="text-sm text-gray-500 mb-3">
+                不选择文档时，AI将自动搜索相关内容
+              </p>
+              <div className="max-h-40 overflow-y-auto border rounded-lg p-3 space-y-2">
+                {documents.map(doc => (
+                  <div key={doc.id} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`doc-${doc.id}`}
+                      checked={selectedDocs.includes(doc.id)}
+                      onChange={() => toggleDocSelection(doc.id)}
+                      className="rounded"
+                    />
+                    <label htmlFor={`doc-${doc.id}`} className="text-sm flex-1 cursor-pointer">
+                      {doc.title}
+                      <span className="text-gray-400 ml-2">({doc.category})</span>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 课程特定设置 */}
+            {type === 'course' && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      课程难度
+                    </label>
+                    <Select value={courseLevel} onValueChange={setCourseLevel}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="easy">简单</SelectItem>
+                        <SelectItem value="medium">中等</SelectItem>
+                        <SelectItem value="hard">困难</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      课时数量
+                    </label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={lessonCount}
+                      onChange={(e) => setLessonCount(parseInt(e.target.value) || 8)}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* 习题特定设置 */}
+            {type === 'exercise' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    题目类型
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: 'multiple_choice', label: '选择题' },
+                      { value: 'fill_blank', label: '填空题' },
+                      { value: 'essay', label: '简答题' },
+                      { value: 'true_false', label: '判断题' }
+                    ].map(type => (
+                      <div key={type.value} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={type.value}
+                          checked={exerciseTypes.includes(type.value)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setExerciseTypes(prev => [...prev, type.value]);
+                            } else {
+                              setExerciseTypes(prev => prev.filter(t => t !== type.value));
+                            }
+                          }}
+                        />
+                        <label htmlFor={type.value} className="text-sm">
+                          {type.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      习题分类
+                    </label>
+                    <Select value={exerciseCategory} onValueChange={setExerciseCategory}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="自主练习">自主练习</SelectItem>
+                        <SelectItem value="课后作业">课后作业</SelectItem>
+                        <SelectItem value="模拟考试">模拟考试</SelectItem>
+                        <SelectItem value="错题本">错题本</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      难度级别
+                    </label>
+                    <Select value={difficulty} onValueChange={setDifficulty}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="easy">简单</SelectItem>
+                        <SelectItem value="medium">中等</SelectItem>
+                        <SelectItem value="hard">困难</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    题目数量
+                  </label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={questionCount}
+                    onChange={(e) => setQuestionCount(parseInt(e.target.value) || 10)}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* 自动保存选项 */}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="auto-save"
+                checked={autoSave}
+                onChange={(e) => setAutoSave(e.target.checked)}
+              />
+              <label htmlFor="auto-save" className="text-sm">
+                自动保存到{type === 'course' ? '课程管理' : '练习管理'}
+              </label>
+            </div>
+          </div>
+
+          {/* 操作按钮 */}
+          <div className="flex items-center justify-end space-x-3 mt-8 pt-6 border-t">
+            <Button variant="outline" onClick={onClose} disabled={isGenerating}>
+              取消
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={!topic.trim() || isGenerating || (type === 'exercise' && exerciseTypes.length === 0)}
+              className={type === 'course'
+                ? "bg-green-600 hover:bg-green-700"
+                : "bg-orange-600 hover:bg-orange-700"
+              }
+            >
+              {isGenerating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  生成中...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-4 h-4 mr-2" />
+                  开始生成
                 </>
               )}
             </Button>

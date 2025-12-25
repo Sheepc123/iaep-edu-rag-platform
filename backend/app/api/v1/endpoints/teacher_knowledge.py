@@ -15,6 +15,7 @@ from app.schemas.knowledge_base import (
 )
 from app.services.vector_service_deepseek import get_deepseek_vector_service
 from app.services.vector_service_simple import get_simple_vector_service
+from app.services.ai_knowledge_generator import AIKnowledgeGenerator
 
 router = APIRouter()
 
@@ -334,3 +335,139 @@ async def get_vector_stats(
             "available": False,
             "message": f"获取统计信息失败: {str(e)}"
         }
+
+
+@router.post("/generate-course", summary="基于知识库生成课程")
+async def generate_course_from_knowledge(
+    topic: str = Form(..., description="课程主题"),
+    knowledge_doc_ids: Optional[str] = Form(None, description="知识库文档ID列表，逗号分隔"),
+    course_level: str = Form("medium", description="课程难度级别"),
+    lesson_count: int = Form(8, description="课时数量"),
+    auto_save: bool = Form(False, description="是否自动保存课程"),
+    current_user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db)
+):
+    """
+    基于知识库文档生成课程
+
+    - **topic**: 课程主题
+    - **knowledge_doc_ids**: 指定的知识库文档ID列表（可选，逗号分隔）
+    - **course_level**: 课程难度级别 (easy/medium/hard)
+    - **lesson_count**: 课时数量
+    - **auto_save**: 是否自动保存生成的课程
+
+    如果不指定knowledge_doc_ids，系统会自动搜索相关文档
+    """
+    try:
+        # 解析文档ID列表
+        doc_ids = None
+        if knowledge_doc_ids:
+            try:
+                doc_ids = [int(id.strip()) for id in knowledge_doc_ids.split(',') if id.strip()]
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="文档ID格式错误，请使用逗号分隔的数字"
+                )
+
+        # 创建AI知识库生成器
+        ai_generator = AIKnowledgeGenerator(db)
+
+        # 生成课程
+        result = await ai_generator.generate_course_from_knowledge(
+            teacher_id=current_user.id,
+            topic=topic,
+            knowledge_doc_ids=doc_ids,
+            course_level=course_level,
+            lesson_count=lesson_count,
+            auto_save=auto_save
+        )
+
+        return result
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"课程生成失败: {str(e)}"
+        )
+
+
+@router.post("/generate-exercises", summary="基于知识库生成习题")
+async def generate_exercises_from_knowledge(
+    topic: str = Form(..., description="习题主题"),
+    knowledge_doc_ids: Optional[str] = Form(None, description="知识库文档ID列表，逗号分隔"),
+    exercise_types: str = Form("multiple_choice,fill_blank,essay", description="题目类型，逗号分隔"),
+    difficulty: str = Form("medium", description="难度级别"),
+    question_count: int = Form(10, description="题目数量"),
+    auto_save: bool = Form(False, description="是否自动保存习题"),
+    course_id: Optional[int] = Form(None, description="关联的课程ID"),
+    exercise_category: str = Form("自主练习", description="习题分类"),
+    current_user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db)
+):
+    """
+    基于知识库文档生成习题
+
+    - **topic**: 习题主题
+    - **knowledge_doc_ids**: 指定的知识库文档ID列表（可选，逗号分隔）
+    - **exercise_types**: 题目类型列表，逗号分隔 (multiple_choice/fill_blank/essay/true_false)
+    - **difficulty**: 难度级别 (easy/medium/hard)
+    - **question_count**: 题目数量
+    - **auto_save**: 是否自动保存生成的习题
+    - **course_id**: 关联的课程ID（可选）
+
+    如果不指定knowledge_doc_ids，系统会自动搜索相关文档
+    """
+    try:
+        # 解析文档ID列表
+        doc_ids = None
+        if knowledge_doc_ids:
+            try:
+                doc_ids = [int(id.strip()) for id in knowledge_doc_ids.split(',') if id.strip()]
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="文档ID格式错误，请使用逗号分隔的数字"
+                )
+
+        # 解析题目类型列表
+        types_list = [t.strip() for t in exercise_types.split(',') if t.strip()]
+        if not types_list:
+            types_list = ["multiple_choice", "fill_blank", "essay"]
+
+        # 验证题目类型
+        valid_types = ["multiple_choice", "fill_blank", "essay", "true_false"]
+        for t in types_list:
+            if t not in valid_types:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"不支持的题目类型: {t}，支持的类型: {', '.join(valid_types)}"
+                )
+
+        # 创建AI知识库生成器
+        ai_generator = AIKnowledgeGenerator(db)
+
+        # 生成习题
+        result = await ai_generator.generate_exercises_from_knowledge(
+            teacher_id=current_user.id,
+            topic=topic,
+            knowledge_doc_ids=doc_ids,
+            exercise_types=types_list,
+            difficulty=difficulty,
+            question_count=question_count,
+            auto_save=auto_save,
+            course_id=course_id,
+            exercise_category=exercise_category
+        )
+
+        return result
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"习题生成失败: {str(e)}"
+        )

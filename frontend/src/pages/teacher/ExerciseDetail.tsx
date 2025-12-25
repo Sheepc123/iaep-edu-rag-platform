@@ -546,7 +546,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, index }) => {
         <p className="text-gray-900 font-medium">{question.question_text}</p>
       </div>
 
-      {question.question_type === 'multiple_choice' && question.options && (
+      {question.question_type === 'multiple_choice' && question.options && Array.isArray(question.options) && (
         <div className="space-y-2 mb-3">
           <p className="text-sm font-medium text-gray-700">选项：</p>
           {question.options.map((option, idx) => (
@@ -562,6 +562,15 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, index }) => {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {question.question_type === 'multiple_choice' && question.options && !Array.isArray(question.options) && (
+        <div className="space-y-2 mb-3">
+          <p className="text-sm font-medium text-gray-700">选项：</p>
+          <div className="text-sm text-gray-600">
+            选项数据格式错误，无法显示
+          </div>
         </div>
       )}
 

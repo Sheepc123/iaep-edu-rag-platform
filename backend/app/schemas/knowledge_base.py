@@ -2,7 +2,7 @@
 知识库相关的Pydantic模式
 """
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
 
@@ -109,3 +109,111 @@ class SemanticSearchResult(BaseModel):
     tags: Optional[List[str]] = Field(None, description="文档标签")
     file_type: Optional[str] = Field(None, description="文件类型")
     enhanced_by: Optional[str] = Field(None, description="增强方式")
+
+
+# ==================== AI生成相关模式 ====================
+
+class KnowledgeCourseGenerationRequest(BaseModel):
+    """基于知识库生成课程请求模式"""
+    topic: str = Field(..., min_length=1, max_length=100, description="课程主题")
+    knowledge_doc_ids: Optional[List[int]] = Field(None, description="指定的知识库文档ID列表")
+    course_level: str = Field("medium", description="课程难度级别")
+    lesson_count: int = Field(8, ge=1, le=20, description="课时数量")
+    auto_save: bool = Field(False, description="是否自动保存课程")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "topic": "Python编程基础",
+                "knowledge_doc_ids": [1, 2, 3],
+                "course_level": "medium",
+                "lesson_count": 8,
+                "auto_save": True
+            }
+        }
+
+
+class KnowledgeExerciseGenerationRequest(BaseModel):
+    """基于知识库生成习题请求模式"""
+    topic: str = Field(..., min_length=1, max_length=100, description="习题主题")
+    knowledge_doc_ids: Optional[List[int]] = Field(None, description="指定的知识库文档ID列表")
+    exercise_types: List[str] = Field(["multiple_choice", "fill_blank", "essay"], description="题目类型列表")
+    difficulty: str = Field("medium", description="难度级别")
+    question_count: int = Field(10, ge=1, le=50, description="题目数量")
+    auto_save: bool = Field(False, description="是否自动保存习题")
+    course_id: Optional[int] = Field(None, description="关联的课程ID")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "topic": "Python编程基础",
+                "knowledge_doc_ids": [1, 2],
+                "exercise_types": ["multiple_choice", "fill_blank"],
+                "difficulty": "medium",
+                "question_count": 10,
+                "auto_save": True,
+                "course_id": 1
+            }
+        }
+
+
+class KnowledgeSource(BaseModel):
+    """知识来源信息模式"""
+    doc_id: int = Field(..., description="文档ID")
+    title: str = Field(..., description="文档标题")
+    relevance_score: float = Field(..., description="相关度分数")
+
+
+class GenerationInfo(BaseModel):
+    """生成信息模式"""
+    topic: str = Field(..., description="主题")
+    difficulty: str = Field(..., description="难度级别")
+    knowledge_docs_used: int = Field(..., description="使用的知识库文档数量")
+    generated_at: str = Field(..., description="生成时间")
+
+
+class CourseGenerationInfo(GenerationInfo):
+    """课程生成信息模式"""
+    lesson_count: int = Field(..., description="课时数量")
+
+
+class ExerciseGenerationInfo(GenerationInfo):
+    """习题生成信息模式"""
+    question_count: int = Field(..., description="题目数量")
+    exercise_types: List[str] = Field(..., description="题目类型列表")
+
+
+class SavedCourseInfo(BaseModel):
+    """保存的课程信息模式"""
+    course_id: int = Field(..., description="课程ID")
+    course_title: str = Field(..., description="课程标题")
+    lessons_count: int = Field(..., description="课时数量")
+    lessons: List[Dict[str, Any]] = Field(..., description="课时列表")
+
+
+class SavedExerciseInfo(BaseModel):
+    """保存的习题信息模式"""
+    exercise_id: int = Field(..., description="习题集ID")
+    exercise_title: str = Field(..., description="习题集标题")
+    questions_count: int = Field(..., description="题目数量")
+    questions: List[Dict[str, Any]] = Field(..., description="题目列表")
+
+
+class KnowledgeCourseGenerationResponse(BaseModel):
+    """基于知识库生成课程响应模式"""
+    success: bool = Field(..., description="是否成功")
+    message: str = Field(..., description="响应消息")
+    course_data: Dict[str, Any] = Field(..., description="生成的课程数据")
+    saved_course: Optional[SavedCourseInfo] = Field(None, description="保存的课程信息")
+    knowledge_sources: List[KnowledgeSource] = Field(..., description="知识来源列表")
+    generation_info: CourseGenerationInfo = Field(..., description="生成信息")
+
+
+class KnowledgeExerciseGenerationResponse(BaseModel):
+    """基于知识库生成习题响应模式"""
+    success: bool = Field(..., description="是否成功")
+    message: str = Field(..., description="响应消息")
+    exercise_data: Dict[str, Any] = Field(..., description="生成的习题数据")
+    saved_exercise: Optional[SavedExerciseInfo] = Field(None, description="保存的习题信息")
+    knowledge_sources: List[KnowledgeSource] = Field(..., description="知识来源列表")
+    generation_info: ExerciseGenerationInfo = Field(..., description="生成信息")

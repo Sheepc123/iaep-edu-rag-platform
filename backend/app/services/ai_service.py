@@ -671,8 +671,13 @@ class AIService:
 
             # 调用AI API生成题目
             if settings.DEEPSEEK_API_KEY and settings.DEEPSEEK_API_KEY != "your-deepseek-api-key-here":
-                result = await self._call_deepseek_for_questions(prompt)
+                try:
+                    result = await self._call_deepseek_for_questions(prompt)
+                except Exception as e:
+                    ai_logger.warning(f"AI API调用失败，回退到模拟数据: {e}")
+                    result = self._generate_mock_questions(subject, topic, difficulty, question_count, question_types)
             else:
+                ai_logger.info("未配置AI API密钥，使用模拟数据生成题目")
                 result = self._generate_mock_questions(subject, topic, difficulty, question_count, question_types)
 
             # 标准化题目格式
@@ -684,7 +689,15 @@ class AIService:
 
         except Exception as e:
             ai_logger.error(f"❌ 题目生成失败: {e}")
-            raise Exception(f"题目生成失败: {str(e)}")
+            ai_logger.warning("回退到模拟数据生成")
+            # 回退到模拟数据生成
+            try:
+                result = self._generate_mock_questions(subject, topic, difficulty, question_count, question_types)
+                ai_logger.info(f"✅ 使用模拟数据生成完成，共生成 {len(result.get('questions', []))} 道题目")
+                return result
+            except Exception as mock_e:
+                ai_logger.error(f"❌ 模拟数据生成也失败: {mock_e}")
+                raise Exception(f"题目生成失败: {str(e)}")
 
     def _build_question_generation_prompt(
         self,
@@ -792,7 +805,6 @@ class AIService:
                 content = result["choices"][0]["message"]["content"]
 
                 # 解析JSON格式的题目
-                import json
                 import re
 
                 # 提取JSON部分

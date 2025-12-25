@@ -44,8 +44,10 @@ export const Home = () => {
         </div>
       </div>
 
+
+
       <footer className="absolute bottom-0 w-full py-8 text-center text-gray-400 text-lg bg-gradient-to-t from-[#020817] to-transparent z-10">
-        <p>© 2024 智能教育平台. All rights reserved.</p>
+        <p>© 2025 智能教育平台.中国矿业大学 All rights reserved.</p>
       </footer>
     </div>
   );

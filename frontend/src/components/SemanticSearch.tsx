@@ -6,7 +6,8 @@ import {
   Sparkles,
   AlertCircle,
   Loader2,
-  TrendingUp
+  TrendingUp,
+  Tag
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,8 +53,11 @@ const SemanticSearch: React.FC<SemanticSearchProps> = ({ onResultClick }) => {
   const [vectorStats, setVectorStats] = useState<VectorStats | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [topK, setTopK] = useState(5);
+  const [showAllDocuments, setShowAllDocuments] = useState(false);
+  const [allDocuments, setAllDocuments] = useState<any[]>([]);
+  const [showLowSimilarity, setShowLowSimilarity] = useState(false);
 
-  // 获取向量统计信息
+  // 获取向量统计信息和所有文档
   useEffect(() => {
     const fetchVectorStats = async () => {
       try {
@@ -64,7 +68,17 @@ const SemanticSearch: React.FC<SemanticSearchProps> = ({ onResultClick }) => {
       }
     };
 
+    const fetchAllDocuments = async () => {
+      try {
+        const docs = await KnowledgeAPI.getDocuments(1, 50); // 获取前50个文档
+        setAllDocuments(docs.documents || []);
+      } catch (err) {
+        console.error('获取文档列表失败:', err);
+      }
+    };
+
     fetchVectorStats();
+    fetchAllDocuments();
   }, []);
 
   // 执行语义搜索
@@ -80,17 +94,35 @@ const SemanticSearch: React.FC<SemanticSearchProps> = ({ onResultClick }) => {
     try {
       const searchRequest = {
         query: query.trim(),
-        top_k: topK,
+        top_k: showLowSimilarity ? Math.max(topK, 10) : topK, // 显示低相似度时增加结果数
         ...(selectedCategory && selectedCategory !== 'all' && { category: selectedCategory })
       };
 
+      console.log('发起语义搜索请求:', searchRequest);
       const searchResults = await KnowledgeAPI.semanticSearch(searchRequest);
+      console.log('语义搜索结果:', searchResults);
+      console.log('搜索结果数量:', searchResults.length);
+
+      // 显示详细的搜索结果信息
+      if (searchResults.length > 0) {
+        console.log('搜索结果详情:');
+        searchResults.forEach((result, index) => {
+          console.log(`  ${index + 1}. ${result.title} (相似度: ${result.similarity?.toFixed(3)})`);
+        });
+      }
+
       setResults(searchResults);
 
       if (searchResults.length === 0) {
-        setError('没有找到相关文档，请尝试其他关键词');
+        // 检查是否有向量数据
+        if (vectorStats?.stats?.total_vectors === 0) {
+          setError('知识库中还没有文档被向量化，请先上传文档到知识库');
+        } else {
+          setError('没有找到相关文档，请尝试其他关键词或检查文档是否已正确上传');
+        }
       }
     } catch (err) {
+      console.error('语义搜索失败:', err);
       setError(err instanceof Error ? err.message : '搜索失败，请重试');
     } finally {
       setLoading(false);
@@ -183,7 +215,7 @@ const SemanticSearch: React.FC<SemanticSearchProps> = ({ onResultClick }) => {
           </div>
 
           {/* 搜索选项 */}
-          <div className="flex space-x-4">
+          <div className="flex flex-wrap gap-4">
             <div className="flex items-center space-x-2">
               <label className="text-sm font-medium">分类:</label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -214,7 +246,67 @@ const SemanticSearch: React.FC<SemanticSearchProps> = ({ onResultClick }) => {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="show-low-similarity"
+                checked={showLowSimilarity}
+                onChange={(e) => setShowLowSimilarity(e.target.checked)}
+                className="rounded"
+              />
+              <label htmlFor="show-low-similarity" className="text-sm font-medium">
+                显示低相似度结果
+              </label>
+            </div>
           </div>
+
+          {/* 搜索建议 */}
+          {allDocuments.length > 0 && !query && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700 mb-2">💡 搜索建议（基于您的文档）：</p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {['Python编程', '高等数学', '极限理论', '编程基础', '数学', '计算机'].map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    onClick={() => setQuery(suggestion)}
+                    className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+              <div className="border-t border-blue-200 pt-2">
+                <p className="text-xs text-blue-600 mb-2">🧪 测试搜索：</p>
+                <div className="flex flex-wrap gap-2">
+                  {['测试', '文档', '内容', '教程', '理论', '基础'].map((testQuery) => (
+                    <button
+                      key={testQuery}
+                      onClick={() => {
+                        setQuery(testQuery);
+                        setShowLowSimilarity(true);
+                        // 自动搜索
+                        setTimeout(() => {
+                          const searchRequest = {
+                            query: testQuery,
+                            top_k: 10,
+                            ...(selectedCategory && selectedCategory !== 'all' && { category: selectedCategory })
+                          };
+                          KnowledgeAPI.semanticSearch(searchRequest).then(results => {
+                            console.log(`测试搜索 "${testQuery}" 结果:`, results);
+                            setResults(results);
+                          });
+                        }, 100);
+                      }}
+                      className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                    >
+                      {testQuery}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -226,15 +318,122 @@ const SemanticSearch: React.FC<SemanticSearchProps> = ({ onResultClick }) => {
         </Alert>
       )}
 
+      {/* 知识库文档概览 */}
+      {!showAllDocuments && allDocuments.length > 0 && results.length === 0 && !loading && (
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">知识库文档</h3>
+                <p className="text-sm text-gray-600">当前知识库中有 {allDocuments.length} 个文档可供搜索</p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowAllDocuments(true)}
+                className="flex items-center space-x-2"
+              >
+                <FileText className="h-4 w-4" />
+                <span>浏览所有文档</span>
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {allDocuments.slice(0, 6).map((doc) => (
+                <div key={doc.id} className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <h4 className="font-medium text-sm truncate" title={doc.title}>
+                    {doc.title}
+                  </h4>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {doc.category} • {(doc.file_size / 1024).toFixed(1)}KB
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {allDocuments.length > 6 && (
+              <p className="text-sm text-gray-500 mt-3 text-center">
+                还有 {allDocuments.length - 6} 个文档...
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 所有文档列表 */}
+      {showAllDocuments && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">所有知识库文档</h3>
+            <Button
+              variant="outline"
+              onClick={() => setShowAllDocuments(false)}
+              className="flex items-center space-x-2"
+            >
+              <Search className="h-4 w-4" />
+              <span>返回搜索</span>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {allDocuments.map((doc) => (
+              <Card key={doc.id} className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between">
+                      <h4 className="font-semibold text-blue-700 hover:text-blue-800">
+                        {doc.title}
+                      </h4>
+                      <Badge variant="outline" className="text-xs">
+                        {doc.file_type?.toUpperCase()}
+                      </Badge>
+                    </div>
+
+                    {doc.summary && (
+                      <p className="text-gray-700 text-sm leading-relaxed line-clamp-2">
+                        {doc.summary}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between text-sm text-gray-500">
+                      <span>{doc.category}</span>
+                      <span>{(doc.file_size / 1024).toFixed(1)}KB</span>
+                    </div>
+
+                    {doc.tags && (
+                      <div className="flex flex-wrap gap-1">
+                        {doc.tags.split(',').slice(0, 3).map((tag: string, index: number) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {tag.trim()}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 搜索结果 */}
-      {results.length > 0 && (
+      {results.length > 0 && !showAllDocuments && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">搜索结果</h3>
-            <span className="text-sm text-gray-600">找到 {results.length} 个相关文档</span>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">找到 {results.length} 个相关文档</span>
+              {!showLowSimilarity && (
+                <span className="text-xs text-gray-500">
+                  (仅显示高相似度结果)
+                </span>
+              )}
+            </div>
           </div>
 
-          {results.map((result, index) => (
+          {results
+            .filter(result => showLowSimilarity || (result.similarity && result.similarity >= 0.1))
+            .map((result, index) => (
             <Card 
               key={`${result.document_id}-${index}`}
               className="hover:shadow-md transition-shadow cursor-pointer"

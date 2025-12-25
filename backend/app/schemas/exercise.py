@@ -102,10 +102,23 @@ class QuestionResponse(QuestionBase):
             return None
         if isinstance(v, str):
             try:
-                return json.loads(v)
+                parsed = json.loads(v)
+                # 确保返回的是列表格式
+                if isinstance(parsed, list):
+                    return parsed
+                elif isinstance(parsed, dict):
+                    return list(parsed.values())
+                else:
+                    return None
             except (json.JSONDecodeError, TypeError):
                 return None
-        return v
+        # 如果已经是列表，直接返回
+        if isinstance(v, list):
+            return v
+        # 如果是字典，转换为列表
+        if isinstance(v, dict):
+            return list(v.values())
+        return None
 
     @validator('tags', pre=True)
     def parse_tags(cls, v):
