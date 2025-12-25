@@ -14,6 +14,29 @@ The *Intelligent Education Platform* is designed for practical teaching and trai
 - **Teacher Portal**: course/exercise creation & management, student progress tracking, knowledge base management, AI-assisted content generation, teaching analytics overview
 - **Admin Portal**: user/resource management, teacher & student statistics, system health monitoring, large-screen overview dashboard
 
+ Screenshots 
+
+![Dashboard](docs/screenshots/1.png)
+![AI-assistance](docs/screenshots/2.png)
+![Student-Dashboard](docs/screenshots/3.png)
+![Dashboard2](docs/screenshots/4.png)
+![Dashboard3](docs/screenshots/5.png)
+![Dashboard4](docs/screenshots/6.png)
+![Dashboard5](docs/screenshots/7.png)
+![Dashboard6](docs/screenshots/8.png)
+![Dashboard7](docs/screenshots/9.png)
+![Dashboard8](docs/screenshots/10.png)
+![Dashboard9](docs/screenshots/11.png)
+![Dashboard10](docs/screenshots/12.png)
+![Dashboard11](docs/screenshots/13.png)
+![Dashboard12](docs/screenshots/14.png)
+![AI-assistance12](docs/screenshots/15.png)
+![Student-Dashboard13](docs/screenshots/16.png)
+![Dashboard21](docs/screenshots/17.png)
+![Dashboard32](docs/screenshots/18.png)
+![Dashboard43](docs/screenshots/19.png)
+
+
 ---
 
 ## 2. System Architecture
@@ -142,22 +165,6 @@ softwareCup/
 
 ---
 
-## 7. Screenshots (For GitHub)
-
-![Dashboard](docs/screenshots/1.png)
-![AI-assistance](docs/screenshots/2.png)
-![Student-Dashboard](docs/screenshots/3.png)
-![Dashboard](docs/screenshots/1.png)
-![Dashboard](docs/screenshots/1.png)
-![Dashboard](docs/screenshots/1.png)
-![Dashboard](docs/screenshots/1.png)
-![Dashboard](docs/screenshots/1.png)
-![Dashboard](docs/screenshots/1.png)
-![Dashboard](docs/screenshots/1.png)
-![Dashboard](docs/screenshots/1.png)
-![Dashboard](docs/screenshots/1.png)
-![Dashboard](docs/screenshots/1.png)
-```
 
 ---
 
