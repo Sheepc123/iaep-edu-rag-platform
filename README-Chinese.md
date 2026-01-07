@@ -162,44 +162,24 @@ softwareCup/
 - **资源管理**：课程/练习/知识库资源管理，审核与分类、备份与清理（按实现）
 - **教师/学生统计**：活跃度、内容创建、覆盖学生、教学/学习效果指标、AI 使用情况等
 
----
-
-## 7. 截图展示（可在 GitHub 中引用）
-
-将截图放置在仓库 `docs/screenshots/`，并重命名为以下文件（或自行调整路径）：
-
-- `admin-dashboard.png`（管理员仪表板）
-- `big-screen.png`（大屏概览）
-- `teacher-dashboard.png`（教师工作台）
-- `knowledge-base.png`（知识库语义检索）
-- `student-dashboard.png`（学生仪表板）
-- `ai-assistant.png`（AI 助手对话）
-- `courses.png`（课程中心）
-- `exercise-manage.png`（练习管理）
-- `score-analysis.png`（成绩分析）
-
-示例（替换为实际路径）：
-```md
-![Admin Dashboard](docs/screenshots/admin-dashboard.png)
-```
 
 ---
 
-## 8. 部署与运维
+## 7. 部署与运维
 
-### 8.1 开发环境
+### 7.1 开发环境
 - OS：Windows / macOS / Linux
 - Python：3.9+
 - Node.js：18+
 - DB：SQLite（开发）；PostgreSQL/MySQL（生产可选）
 
-### 8.2 生产环境（Huawei Cloud ECS）
+### 7.2 生产环境（Huawei Cloud ECS）
 - 服务器建议：4C8G+，SSD 100GB+
 - 支持两种方式：
   - **Docker 部署**：构建镜像 + docker-compose 编排；可选 Nginx 反向代理 + SSL
   - **传统部署**：后端 Gunicorn/uWSGI + 前端静态文件部署 + Nginx/Apache
 
-### 8.3 监控建议
+### 7.3 监控建议
 - 性能：API 响应时间、CPU/内存/磁盘、数据库连接与慢查询
 - 错误：日志收集、异常报警、AI 调用失败率
 - 业务：用户活跃、功能使用频率、AI 调用统计与质量反馈
@@ -207,7 +187,7 @@ softwareCup/
 ---
 
 
-## 10. 总结
+## 8. 总结
 
 本项目以“AI + 教学业务闭环”为核心，完成了从需求分析、系统设计、全栈实现到线上部署的完整工程实践。系统在多角色业务、RAG 知识库、AI 助手、数据看板与可部署性方面具备较强的综合能力，可作为教学管理与学习辅助的原型系统持续迭代。
 
