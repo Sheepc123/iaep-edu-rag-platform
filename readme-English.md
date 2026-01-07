@@ -168,34 +168,34 @@ softwareCup/
 
 ---
 
-## 8. Deployment & Operations
+## 7. Deployment & Operations
 
-### 8.1 Development Environment
+### 7.1 Development Environment
 - OS: Windows / macOS / Linux
 - Python: 3.9+
 - Node.js: 18+
 - DB: SQLite (dev); PostgreSQL/MySQL (optional for production)
 
-### 8.2 Production (Huawei Cloud ECS)
+### 7.2 Production (Huawei Cloud ECS)
 - Recommended: 4 vCPU / 8 GB RAM+, SSD 100 GB+
 - Two deployment options:
   - **Docker deployment**: build images + docker-compose; optional Nginx reverse proxy + SSL
   - **Traditional deployment**: Gunicorn/uWSGI for backend + static frontend hosting + Nginx/Apache
 
-### 8.3 Monitoring Recommendations
+### 7.3 Monitoring Recommendations
 - Performance: API latency, CPU/memory/disk, DB connections & slow queries
 - Reliability: log aggregation, alerts, AI call failure rate
 - Business metrics: user activity, feature usage frequency, AI usage statistics & quality feedback
 
 ---
 
-## 9. Team Responsibilities (From Course Report)
+## 8. Team Responsibilities (From Course Report)
 - **Yueyang Liu**: overall architecture & backend development; AI integration and knowledge base (RAG) design  
 - **Wanqi Wang**: frontend UI and user experience design  
 - **Hao Sun**: algorithm design and data processing  
 
 ---
 
-## 10. Summary
+## 9. Summary
 
 This project follows an end-to-end engineering workflow—from requirements analysis and system design to full-stack implementation and cloud deployment. It delivers a complete “AI + teaching workflow” loop with multi-role business modules, a RAG-based knowledge base, AI assistant features, analytics dashboards, and production-ready deployment capability, providing a strong foundation for further iteration.
